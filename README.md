@@ -1,12 +1,13 @@
 # dc_dev
 
-Dev tools and project hub. Hosted on [Cloudflare Pages](https://pages.cloudflare.com).
+Dev tools and project hub. Hosted on [Cloudflare Pages](https://pages.cloudflare.com) with a Worker for auth and routing.
 
 ## Structure
 
 - **Home** (`/`) – Landing and quick links
 - **Projects** (`/projects/`) – Links to hosted projects (other repos)
-- **Login** (`/login/`) – Sign-in placeholder (wire to your auth provider)
+- **Login** (`/login/`) – Request access; you approve and send magic links
+- **Admin** (`/admin?key=SECRET`) – Approve pending requests, copy magic links
 
 ## Adding projects
 
@@ -41,13 +42,6 @@ npm install
 npm run dev
 ```
 
-## Deploy to Cloudflare Pages
+## Deploy
 
-1. Push to GitHub (or GitLab).
-2. In [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**.
-3. Select this repo and configure:
-   - **Build command:** `npm run build`
-   - **Build output directory:** `dist`
-   - **Root directory:** (leave default)
-
-Deploys run automatically on push to your production branch.
+See **[DEPLOY.md](./DEPLOY.md)** for full setup: hub → Pages, Worker → auth + routing, One Click DC under `/one-click-dc/`.

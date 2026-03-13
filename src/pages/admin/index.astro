@@ -1,0 +1,176 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Approve access" description="Approve access requests">
+  <section class="admin-section">
+    <h1 class="admin-title">Approve access</h1>
+    <p class="admin-subtitle">Pending requests. Approve to generate a magic link to send.</p>
+    <div id="admin-content">
+      <p class="loading">Loading…</p>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  const url = new URL(window.location.href);
+  const key = url.searchParams.get("key");
+  const apiBase = url.origin.includes("workers.dev") ? "" : "https://dc-dev-gateway.masterxavuga.workers.dev";
+  if (!key) {
+    document.getElementById("admin-content")!.innerHTML = '<p class="error">Add ?key=YOUR_ADMIN_SECRET to the URL.</p>';
+  } else {
+    loadPending();
+  }
+
+  async function loadPending() {
+    const res = await fetch(`${apiBase}/api/admin/pending?key=${encodeURIComponent(key)}`);
+    if (!res.ok) {
+      document.getElementById("admin-content")!.innerHTML = '<p class="error">Failed to load. Check your key.</p>';
+      return;
+    }
+    const { pending } = await res.json();
+    render(pending);
+  }
+
+  function render(pending: { email: string; message?: string; createdAt: number }[]) {
+    const el = document.getElementById("admin-content")!;
+    if (pending.length === 0) {
+      el.innerHTML = '<p class="empty">No pending requests.</p>';
+      return;
+    }
+    el.innerHTML = `
+      <ul class="pending-list">
+        ${pending.map((p) => `
+          <li class="pending-item">
+            <div class="pending-info">
+              <strong>${escapeHtml(p.email)}</strong>
+              ${p.message ? `<span class="pending-msg">${escapeHtml(p.message)}</span>` : ""}
+            </div>
+            <button class="btn btn-primary btn-approve" data-email="${escapeHtml(p.email)}">Approve</button>
+          </li>
+        `).join("")}
+      </ul>
+      <div id="approval-result" class="approval-result" style="display:none"></div>
+    `;
+    el.querySelectorAll(".btn-approve").forEach((btn) => {
+      btn.addEventListener("click", () => approve((btn as HTMLButtonElement).dataset.email!));
+    });
+  }
+
+  async function approve(email: string) {
+    const res = await fetch(`${apiBase}/api/admin/approve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, key }),
+    });
+    const data = await res.json();
+    const resultEl = document.getElementById("approval-result")!;
+    resultEl.style.display = "block";
+    if (data.ok) {
+      resultEl.innerHTML = `
+        <p class="success">Approved <strong>${escapeHtml(data.email)}</strong>. Send them this link (valid 24h):</p>
+        <input type="text" class="magic-link-input" value="${escapeHtml(data.magicLink)}" readonly />
+        <button class="btn btn-ghost btn-copy">Copy</button>
+      `;
+      resultEl.querySelector(".btn-copy")?.addEventListener("click", () => {
+        navigator.clipboard.writeText(data.magicLink);
+        (resultEl.querySelector(".btn-copy") as HTMLButtonElement).textContent = "Copied!";
+      });
+      loadPending();
+    } else {
+      resultEl.innerHTML = `<p class="error">${escapeHtml(data.error || "Failed")}</p>`;
+    }
+  }
+
+  function escapeHtml(s: string) {
+    const div = document.createElement("div");
+    div.textContent = s;
+    return div.innerHTML;
+  }
+</script>
+
+<style>
+  .admin-section {
+    max-width: 560px;
+  }
+
+  .admin-title {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    font-weight: 500;
+    margin: 0 0 0.5rem;
+  }
+
+  .admin-subtitle {
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    margin: 0 0 1.5rem;
+  }
+
+  .loading, .empty {
+    color: var(--muted-foreground);
+  }
+
+  .error {
+    color: var(--destructive);
+  }
+
+  .success {
+    color: var(--secondary);
+  }
+
+  .pending-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .pending-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+
+  .pending-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .pending-msg {
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+  }
+
+  .approval-result {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: var(--card);
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--secondary);
+  }
+
+  .magic-link-input {
+    width: 100%;
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--foreground);
+  }
+
+  .btn-copy {
+    margin-top: 0.5rem;
+  }
+</style>

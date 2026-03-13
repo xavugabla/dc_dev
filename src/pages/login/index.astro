@@ -6,10 +6,12 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   <section class="login-section">
     <h1 class="login-title">Sign in</h1>
     <p class="login-subtitle">
-      Authentication can be wired to your preferred provider (e.g. Cloudflare Access, OAuth, or custom).
+      Request access below. Once approved, you'll receive a magic link to sign in.
     </p>
 
-    <form class="login-form" action="#" method="post">
+    <div id="login-message" class="login-message" style="display: none"></div>
+
+    <form id="request-form" class="login-form">
       <div class="form-group">
         <label for="email">Email</label>
         <input
@@ -22,24 +24,73 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         />
       </div>
       <div class="form-group">
-        <label for="password">Password</label>
+        <label for="message">Message (optional)</label>
         <input
-          type="password"
-          id="password"
-          name="password"
-          placeholder="••••••••"
-          required
-          autocomplete="current-password"
+          type="text"
+          id="message"
+          name="message"
+          placeholder="Why you need access"
+          autocomplete="off"
         />
       </div>
-      <button type="submit" class="btn btn-primary btn-full">Sign in</button>
+      <button type="submit" class="btn btn-primary btn-full">Request access</button>
     </form>
 
     <p class="login-note">
-      This is a placeholder form. Connect Cloudflare Pages Functions, Workers, or an external auth service to enable real sign-in.
+      If you've been approved, check your email or ask the admin for your magic link.
     </p>
   </section>
 </BaseLayout>
+
+<script>
+  const form = document.getElementById("request-form")!;
+  const messageEl = document.getElementById("login-message")!;
+  const apiBase = window.location.origin.includes("workers.dev") ? "" : "https://dc-dev-gateway.masterxavuga.workers.dev";
+
+  const params = new URLSearchParams(window.location.search);
+  const error = params.get("error");
+  if (error === "expired") {
+    messageEl.textContent = "That link has expired. Request a new one.";
+    messageEl.className = "login-message error";
+    messageEl.style.display = "block";
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = (form.querySelector("#email") as HTMLInputElement).value.trim();
+    const message = (form.querySelector("#message") as HTMLInputElement).value.trim();
+    const btn = form.querySelector("button[type=submit]") as HTMLButtonElement;
+    btn.disabled = true;
+    btn.textContent = "Submitting…";
+
+    try {
+      const res = await fetch(`${apiBase}/api/request-access`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, message }),
+      });
+      const data = await res.json();
+
+      if (res.ok && data.ok) {
+        messageEl.textContent = "Request submitted. You'll get access when approved.";
+        messageEl.className = "login-message success";
+        messageEl.style.display = "block";
+        form.reset();
+      } else {
+        messageEl.textContent = data.error || "Something went wrong.";
+        messageEl.className = "login-message error";
+        messageEl.style.display = "block";
+      }
+    } catch {
+      messageEl.textContent = "Network error. Try again.";
+      messageEl.className = "login-message error";
+      messageEl.style.display = "block";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Request access";
+    }
+  });
+</script>
 
 <style>
   .login-section {
@@ -58,6 +109,25 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     color: var(--muted-foreground);
     font-size: 0.875rem;
     margin: 0 0 1.5rem;
+  }
+
+  .login-message {
+    padding: 0.75rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+  }
+
+  .login-message.success {
+    background: color-mix(in srgb, var(--secondary) 20%, var(--card));
+    border: 1px solid var(--secondary);
+    color: var(--secondary);
+  }
+
+  .login-message.error {
+    background: color-mix(in srgb, var(--destructive) 15%, var(--card));
+    border: 1px solid var(--destructive);
+    color: var(--destructive);
   }
 
   .login-form {

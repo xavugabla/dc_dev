@@ -12,7 +12,11 @@ export interface Project {
 }
 
 export const projects: Project[] = [
-  // Example entries – replace with your actual projects
-  // { id: 'tools', name: 'Tools', description: 'Dev utilities', href: '/tools/', external: false },
-  // { id: 'docs', name: 'Docs', description: 'Documentation', href: 'https://docs.example.com', external: true },
+  {
+    id: 'one-click-dc',
+    name: 'One Click DC',
+    description: 'Energy calculation and proposal tools',
+    href: '/one-click-dc/',
+    external: false,
+  },
 ];

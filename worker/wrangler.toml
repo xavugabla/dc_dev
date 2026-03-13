@@ -1,0 +1,16 @@
+name = "dc-dev-gateway"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+# KV for auth: pending requests, approved users, magic link tokens, sessions
+kv_namespaces = [
+  { binding = "AUTH", id = "925291dbfa924a748a51ad7d2cf63ea5" }
+]
+
+# Env vars (set in Cloudflare dashboard or via wrangler secret)
+# ADMIN_SECRET - required to access /admin and approve requests
+# HUB_ORIGIN - e.g. https://dc-dev-hub.pages.dev
+# ONE_CLICK_ORIGIN - e.g. https://one-click-dc.pages.dev (optional, for /one-click-dc/* routing)
+
+[vars]
+HUB_ORIGIN = "https://dc-dev-hub.pages.dev"

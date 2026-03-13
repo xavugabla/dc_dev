@@ -136,6 +136,17 @@ body {
   color: var(--muted-foreground);
 }
 
+.footer-admin {
+  margin-left: 1rem;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  text-decoration: none;
+}
+
+.footer-admin:hover {
+  color: var(--primary);
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;
