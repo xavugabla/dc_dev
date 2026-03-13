@@ -1,0 +1,223 @@
+/* One Click DC — UI Look & Feel */
+:root {
+  /* Core */
+  --background: hsl(260 50% 8%);
+  --foreground: hsl(260 10% 95%);
+  --card: hsl(260 40% 12% / 0.6);
+  --card-foreground: hsl(260 10% 95%);
+  --popover: hsl(260 45% 10%);
+  --muted: hsl(260 30% 18%);
+  --muted-foreground: hsl(260 20% 60%);
+  --accent: hsl(260 40% 22%);
+  --border: hsl(260 30% 22%);
+  --input: hsl(260 30% 18%);
+
+  /* Accents */
+  --primary: hsl(300 100% 60%);
+  --primary-foreground: hsl(0 0% 100%);
+  --primary-glow: hsl(300 100% 60% / 0.5);
+  --secondary: hsl(180 100% 50%);
+  --destructive: hsl(0 80% 60%);
+  --ring: hsl(300 100% 60%);
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Z-index */
+  --z-content: 10;
+  --z-sticky: 20;
+  --z-header: 50;
+  --z-dropdown: 60;
+  --z-modal: 100;
+
+  /* Fonts */
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --transition: 0.2s ease;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-weight: 400;
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  background-image: linear-gradient(to bottom right, #0f172a, #0f172a 40%, #1e293b 60%, #0f172a);
+}
+
+/* Glass header */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 1.5rem;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.logo {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 1.25rem;
+  color: var(--foreground);
+  text-decoration: none;
+  letter-spacing: -0.02em;
+  transition: color var(--transition);
+}
+
+.logo:hover {
+  color: var(--primary);
+  text-shadow: 0 0 20px var(--primary-glow);
+}
+
+.nav {
+  display: flex;
+  gap: 2rem;
+}
+
+.nav a {
+  color: var(--muted-foreground);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: color var(--transition);
+}
+
+.nav a:hover {
+  color: var(--primary);
+}
+
+.main {
+  flex: 1;
+  padding: 1.5rem 1.5rem;
+  max-width: 960px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .main {
+    padding: 2rem 2.5rem;
+  }
+}
+
+.site-footer {
+  padding: 1.5rem 2rem;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+.footer-text {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 1.25rem;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all var(--transition);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 0 20px var(--primary-glow);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--muted-foreground);
+  border: 1px solid var(--border);
+}
+
+.btn-ghost:hover {
+  color: var(--foreground);
+  background: var(--accent);
+  border-color: var(--border);
+}
+
+/* Cards */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(12px);
+}
+
+.card:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Glow utilities */
+.text-glow {
+  text-shadow: 0 0 20px currentColor;
+}
+
+.text-glow-cyan {
+  text-shadow: 0 0 20px hsl(180 100% 50% / 0.6);
+}
+
+.border-glow {
+  box-shadow: 0 0 20px hsl(300 100% 60% / 0.3);
+}
+
+.border-glow-cyan {
+  box-shadow: 0 0 20px hsl(180 100% 50% / 0.4);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(260 30% 25%);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(260 30% 35%);
+}

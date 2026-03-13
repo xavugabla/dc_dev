@@ -1,0 +1,136 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { projects } from '../../config/projects';
+---
+
+<BaseLayout title="Projects" description="Projects hosted on dc_dev">
+  <section class="projects-section">
+    <h1 class="projects-title">Projects</h1>
+    <p class="projects-subtitle">
+      Links to tools and projects. Add entries in <code>src/config/projects.ts</code> to populate this list.
+    </p>
+
+    {projects.length > 0 ? (
+      <ul class="project-list">
+        {projects.map((p) => (
+          <li>
+            <a
+              href={p.href}
+              class="project-link"
+              target={p.external ? '_blank' : undefined}
+              rel={p.external ? 'noopener noreferrer' : undefined}
+            >
+              <span class="project-link-name">{p.name}</span>
+              <span class="project-link-desc">{p.description}</span>
+              {p.external && (
+                <span class="project-link-icon" aria-hidden="true">↗</span>
+              )}
+            </a>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <div class="empty-projects">
+        <p>No projects added yet.</p>
+        <p class="empty-hint">
+          Edit <code>src/config/projects.ts</code> and add project entries with <code>id</code>, <code>name</code>, <code>description</code>, and <code>href</code>.
+        </p>
+      </div>
+    )}
+  </section>
+</BaseLayout>
+
+<style>
+  .projects-section {
+    max-width: 640px;
+  }
+
+  .projects-title {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    font-weight: 500;
+    margin: 0 0 0.5rem;
+  }
+
+  .projects-subtitle {
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    margin: 0 0 1.5rem;
+  }
+
+  .projects-subtitle code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    padding: 0.1em 0.35em;
+    background: var(--card);
+    border-radius: var(--radius-sm);
+  }
+
+  .project-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .project-link {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    color: inherit;
+    transition: all var(--transition);
+    backdrop-filter: blur(12px);
+  }
+
+  .project-link:hover {
+    border-color: var(--primary);
+    box-shadow: 0 0 20px var(--primary-glow);
+  }
+
+  .project-link-name {
+    font-weight: 600;
+    min-width: 140px;
+  }
+
+  .project-link-desc {
+    flex: 1;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+  }
+
+  .project-link-icon {
+    font-size: 1rem;
+    color: var(--secondary);
+  }
+
+  .empty-projects {
+    padding: 1.5rem;
+    background: var(--card);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-md);
+  }
+
+  .empty-projects p {
+    margin: 0 0 0.5rem;
+    color: var(--muted-foreground);
+  }
+
+  .empty-hint {
+    font-size: 0.875rem;
+  }
+
+  .empty-hint code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    padding: 0.15em 0.4em;
+    background: var(--muted);
+    border-radius: var(--radius-sm);
+  }
+</style>

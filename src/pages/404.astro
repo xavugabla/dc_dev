@@ -1,0 +1,31 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Not found" description="Page not found">
+  <section class="error-section">
+    <h1 class="error-code">404</h1>
+    <p class="error-message">Page not found</p>
+    <a href="/" class="btn btn-primary">Back to home</a>
+  </section>
+</BaseLayout>
+
+<style>
+  .error-section {
+    text-align: center;
+    padding: 3rem 0;
+  }
+
+  .error-code {
+    font-family: var(--font-mono);
+    font-size: 3.5rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    margin: 0 0 0.5rem;
+  }
+
+  .error-message {
+    margin: 0 0 1.5rem;
+    color: var(--muted-foreground);
+  }
+</style>
