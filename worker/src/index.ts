@@ -3,6 +3,7 @@ export interface Env {
   ADMIN_SECRET: string;
   HUB_ORIGIN: string;
   ONE_CLICK_ORIGIN?: string;
+  PIPELINE_ORIGIN?: string;
 }
 
 const SESSION_COOKIE = "dc_session";
@@ -201,9 +202,11 @@ async function handleAdmin(request: Request, env: Env, pathname: string): Promis
 
 async function proxyToOrigin(request: Request, env: Env, pathname: string): Promise<Response> {
   const oneClickOrigin = env.ONE_CLICK_ORIGIN;
+  const pipelineOrigin = env.PIPELINE_ORIGIN;
+  const isPipeline = pipelineOrigin && pathname.startsWith("/pipeline");
   const isOneClick = oneClickOrigin && pathname.startsWith("/one-click-dc");
-  const origin = isOneClick ? oneClickOrigin : env.HUB_ORIGIN;
-  const targetPath = isOneClick ? pathname : pathname;
+  const origin = isPipeline ? pipelineOrigin : isOneClick ? oneClickOrigin : env.HUB_ORIGIN;
+  const targetPath = isPipeline ? pathname.slice("/pipeline".length) || "/" : pathname;
   const targetUrl = `${origin}${targetPath}${new URL(request.url).search}`;
   const headers = new Headers(request.headers);
   headers.set("Host", new URL(origin).host);

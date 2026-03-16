@@ -14,9 +14,15 @@ export interface Project {
 export const projects: Project[] = [
   {
     id: 'one-click-dc',
-    name: 'One Click DC',
-    description: 'Energy calculation and proposal tools',
-    href: '/one-click-dc/',
-    external: false,
+    name: 'DaisyChain',
+    description: 'Energy analysis and utility cost modeling',
+    href: 'https://dc-dev.pages.dev',
+    external: true,
+  },
+  {
+    id: 'pipeline',
+    name: 'Pipeline CRM',
+    description: 'Notion CRM pipeline analytics',
+    href: '/pipeline/',
   },
 ];
