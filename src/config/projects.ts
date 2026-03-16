@@ -23,6 +23,6 @@ export const projects: Project[] = [
     id: 'pipeline',
     name: 'Pipeline CRM',
     description: 'Notion CRM pipeline analytics',
-    href: '/pipeline/docs',
+    href: '/api/pipeline/docs',
   },
 ];
