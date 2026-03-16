@@ -18,6 +18,7 @@ export const onRequest: PagesFunction = async (context) => {
     body: context.request.method !== 'GET' && context.request.method !== 'HEAD'
       ? context.request.body
       : undefined,
+    redirect: 'manual',
   });
 
   const responseHeaders = new Headers(response.headers);
