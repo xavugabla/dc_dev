@@ -15,7 +15,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 <script>
   const url = new URL(window.location.href);
   const key = url.searchParams.get("key");
-  const apiBase = url.origin.includes("workers.dev") ? "" : "https://dc-dev-gateway.masterxavuga.workers.dev";
+  const apiBase = ""; // same origin — Pages Functions handle API routes
   if (!key) {
     document.getElementById("admin-content")!.innerHTML = '<p class="error">Add ?key=YOUR_ADMIN_SECRET to the URL.</p>';
   } else {

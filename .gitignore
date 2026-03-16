@@ -4,6 +4,9 @@ node_modules/
 # Build output
 dist/
 
+# Wrangler local artifacts
+.wrangler/
+
 # Environment
 .env
 .env.*

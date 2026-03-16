@@ -1,0 +1,21 @@
+# Cloudflare Pages Functions configuration
+# Used for local dev (wrangler pages dev) and binding reference.
+# KV bindings and secrets are also set in the Cloudflare dashboard
+# under Pages > dc-dev-hub > Settings > Functions.
+
+name = "dc-dev-hub"
+pages_build_output_dir = "dist"
+compatibility_date = "2024-01-01"
+
+# KV for auth: sessions, tokens, pending requests, approved users
+[[kv_namespaces]]
+binding = "AUTH"
+id = "925291dbfa924a748a51ad7d2cf63ea5"
+
+# Environment variables
+# ADMIN_SECRET — set as encrypted env var in Cloudflare dashboard
+# PIPELINE_ORIGIN — dc_async Cloud Run URL
+# ONE_CLICK_ORIGIN — one_click_dc Cloud Run URL (future use)
+[vars]
+PIPELINE_ORIGIN = "https://dc-async-api-216566158850.us-central1.run.app"
+ONE_CLICK_ORIGIN = "https://one-click-dc-api-216566158850.us-central1.run.app"
