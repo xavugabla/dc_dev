@@ -4,7 +4,7 @@ interface Props {
   description?: string;
 }
 
-const { title, description = 'Dev tools and project hub' } = Astro.props;
+const { title, description = 'DaisyChain — tools and project hub' } = Astro.props;
 ---
 
 <!doctype html>
@@ -19,17 +19,19 @@ const { title, description = 'Dev tools and project hub' } = Astro.props;
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
-    <title>{title} · dc_dev</title>
+    <title>{title} · DaisyChain</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/styles/global.css" />
   </head>
   <body>
     <header class="site-header">
-      <a href="/" class="logo">dc_dev</a>
+      <a href="/" class="logo">
+        <img src="/assets/logo.svg" alt="DaisyChain" class="logo-img" />
+        <span class="logo-text">DaisyChain</span>
+      </a>
       <nav class="nav">
         <a href="/">Home</a>
         <a href="/projects/">Projects</a>
-        <a href="/login/">Login</a>
       </nav>
     </header>
     <main class="main">
@@ -37,7 +39,6 @@ const { title, description = 'Dev tools and project hub' } = Astro.props;
     </main>
     <footer class="site-footer">
       <span class="footer-text">Tools & project dev</span>
-      <a href="/admin/" class="footer-admin">Admin</a>
     </footer>
   </body>
 </html>
