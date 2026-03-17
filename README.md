@@ -1,6 +1,6 @@
-# dc_dev
+# dc-hub
 
-Dev tools and project hub. Hosted on [Cloudflare Pages](https://pages.cloudflare.com) with a Worker for auth and routing.
+Gatekeeper platform—hosting hub for auth, performance metrics, and project access. Frontend in `src/`, backend in `backend/` (Cloud Run). Hosted on [Cloudflare Pages](https://pages.cloudflare.com) with dc-hub-gateway Worker for auth and routing. See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 ## Structure
 
@@ -11,7 +11,7 @@ Dev tools and project hub. Hosted on [Cloudflare Pages](https://pages.cloudflare
 
 ## Adding projects
 
-Edit `src/config/projects.ts` and add entries:
+Edit `src/config/projects.config.ts` and add entries (see also `docs/ARCHITECTURE.md` for routing setup):
 
 ```ts
 {
@@ -44,4 +44,4 @@ npm run dev
 
 ## Deploy
 
-See **[DEPLOY.md](./DEPLOY.md)** for full setup: hub → Pages, Worker → auth + routing, One Click DC under `/one-click-dc/`.
+See **[DEPLOY.md](./DEPLOY.md)** for full setup: hub → Pages, Worker → auth + routing, projects under `/modeling/`, `/notion-sync/`, `/partner-portal/`.

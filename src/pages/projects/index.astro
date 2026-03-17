@@ -42,7 +42,7 @@ import { projects } from '../../config/projects';
       <div class="empty-projects">
         <p>No projects added yet.</p>
         <p class="empty-hint">
-          Edit <code>src/config/projects.ts</code> to get started.
+          Edit <code>src/config/projects.config.ts</code> to get started.
         </p>
       </div>
     )}
@@ -54,12 +54,12 @@ import { projects } from '../../config/projects';
     <h2 class="docs-title">Adding a new project</h2>
     <p class="docs-body">
       All projects are defined in a single file:
-      <code>src/config/projects.ts</code>
+      <code>src/config/projects.config.ts</code>
     </p>
     <ol class="docs-steps">
       <li>
-        Open <code>src/config/projects.ts</code> and add an entry to the
-        <code>projects</code> array:
+        Open <code>src/config/projects.config.ts</code> and add an entry to the
+        <code>projectConfigs</code> array:
         <pre class="docs-code"><code>{`{
   id: 'my-tool',
   name: 'My Tool',

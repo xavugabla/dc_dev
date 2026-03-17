@@ -1,13 +1,16 @@
-import { getIdentityToken } from './gcp-auth';
+import { getIdentityToken } from '../../functions/_lib/gcp-auth';
 
 export interface Env {
   AUTH: KVNamespace;
   ADMIN_SECRET: string;
   HUB_ORIGIN: string;
-  ONE_CLICK_ORIGIN?: string;
+  MODELING_ORIGIN?: string;         // DaisyChain frontend (dc-modeling.pages.dev)
+  MODELING_API_ORIGIN?: string;    // one-click-dc-api Cloud Run
+  NOTION_SYNC_ORIGIN?: string;     // Notion Sync frontend (notion-sync-7ja.pages.dev)
+  NOTION_SYNC_API_ORIGIN?: string; // dc-async-api Cloud Run
   PIPELINE_ORIGIN?: string;
-  PARTNER_PORTAL_ORIGIN?: string;  // CF Pages URL for partner portal frontend
-  PARTNER_API_ORIGIN?: string;     // Cloud Run URL for partner portal API
+  PARTNER_PORTAL_ORIGIN?: string;
+  PARTNER_API_ORIGIN?: string;
   GCP_SERVICE_ACCOUNT_KEY?: string;
 }
 
@@ -213,32 +216,46 @@ async function handleAdmin(request: Request, env: Env, pathname: string): Promis
 }
 
 async function proxyToOrigin(request: Request, env: Env, pathname: string, email: string | null): Promise<Response> {
-  const oneClickOrigin = env.ONE_CLICK_ORIGIN;
+  const modelingOrigin = env.MODELING_ORIGIN;
+  const modelingApiOrigin = env.MODELING_API_ORIGIN;
+  const notionSyncOrigin = env.NOTION_SYNC_ORIGIN;
+  const notionSyncApiOrigin = env.NOTION_SYNC_API_ORIGIN;
   const pipelineOrigin = env.PIPELINE_ORIGIN;
   const partnerPortalOrigin = env.PARTNER_PORTAL_ORIGIN;
   const partnerApiOrigin = env.PARTNER_API_ORIGIN;
 
-  const isPipeline = pipelineOrigin && pathname.startsWith("/pipeline");
-  const isOneClick = oneClickOrigin && pathname.startsWith("/one-click-dc");
-  const isPartnerPortal = partnerPortalOrigin && pathname.startsWith("/partner-portal");
+  const isModelingApi = modelingApiOrigin && pathname.startsWith("/api/modeling");
+  const isNotionSyncApi = notionSyncApiOrigin && pathname.startsWith("/api/notion-sync");
   const isPartnerApi = partnerApiOrigin && pathname.startsWith("/api/partner");
+  const isModeling = modelingOrigin && pathname.startsWith("/modeling");
+  const isNotionSync = notionSyncOrigin && pathname.startsWith("/notion-sync");
+  const isPartnerPortal = partnerPortalOrigin && pathname.startsWith("/partner-portal");
+  const isPipeline = pipelineOrigin && pathname.startsWith("/pipeline");
 
   let origin: string;
   let targetPath: string;
 
   if (isPartnerApi) {
     origin = partnerApiOrigin;
-    // Rewrite /api/partner/* → /api/*
     targetPath = "/api" + pathname.slice("/api/partner".length);
+  } else if (isModelingApi) {
+    origin = modelingApiOrigin;
+    targetPath = pathname.replace(/^\/api\/modeling/, "") || "/";
+  } else if (isNotionSyncApi) {
+    origin = notionSyncApiOrigin;
+    targetPath = pathname.replace(/^\/api\/notion-sync/, "") || "/";
   } else if (isPartnerPortal) {
     origin = partnerPortalOrigin;
-    targetPath = pathname; // CF Pages serves at /partner-portal/ base
+    targetPath = pathname;
+  } else if (isModeling) {
+    origin = modelingOrigin;
+    targetPath = pathname.replace(/^\/modeling/, "") || "/";
+  } else if (isNotionSync) {
+    origin = notionSyncOrigin;
+    targetPath = pathname.replace(/^\/notion-sync/, "") || "/";
   } else if (isPipeline) {
     origin = pipelineOrigin;
     targetPath = pathname.slice("/pipeline".length) || "/";
-  } else if (isOneClick) {
-    origin = oneClickOrigin!;
-    targetPath = pathname;
   } else {
     origin = env.HUB_ORIGIN;
     targetPath = pathname;
@@ -248,14 +265,15 @@ async function proxyToOrigin(request: Request, env: Env, pathname: string, email
   const headers = new Headers(request.headers);
   headers.set("Host", new URL(origin).host);
 
-  // Inject identity headers for partner portal routes
   if ((isPartnerApi || isPartnerPortal) && email) {
     headers.set("X-DC-User-Email", email);
     headers.set("X-DC-Admin", DC_ADMIN_EMAILS.has(email) ? "true" : "false");
   }
 
-  // Add GCP IAM auth for Cloud Run backends
-  if (env.GCP_SERVICE_ACCOUNT_KEY && (isPartnerApi || isPipeline)) {
+  const needsGcpAuth =
+    env.GCP_SERVICE_ACCOUNT_KEY &&
+    (isPartnerApi || isModelingApi || isNotionSyncApi || isPipeline);
+  if (needsGcpAuth) {
     const idToken = await getIdentityToken(env.GCP_SERVICE_ACCOUNT_KEY, origin);
     headers.set("Authorization", `Bearer ${idToken}`);
   }

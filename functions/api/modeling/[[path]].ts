@@ -1,5 +1,5 @@
-// CF Pages Function: proxy /api/proposals/* to one-click-dc-api Cloud Run
-// Strips /api/proposals and re-adds /api — one_click_dc routes are /api/graphs, /api/buildings, etc.
+// CF Pages Function: proxy /api/modeling/* to one-click-dc-api Cloud Run
+// Strips /api/modeling prefix — one_click_dc routes are /health, /api/graphs, etc.
 import { getIdentityToken } from '../../_lib/gcp-auth';
 
 interface Env {
@@ -10,9 +10,8 @@ const BACKEND = 'https://one-click-dc-api-216566158850.us-central1.run.app';
 
 export const onRequest: PagesFunction<Env> = async (context) => {
   const url = new URL(context.request.url);
-  // /api/proposals/health → /health, /api/proposals/graphs → /api/graphs
-  const suffix = url.pathname.replace(/^\/api\/proposals/, '') || '/';
-  // one_click_dc mounts routers at /api prefix, but /health is at root
+  // /api/modeling/health → /health, /api/modeling/graphs → /api/graphs
+  const suffix = url.pathname.replace(/^\/api\/modeling/, '') || '/';
   const backendUrl = `${BACKEND}${suffix}${url.search}`;
 
   const headers = new Headers(context.request.headers);

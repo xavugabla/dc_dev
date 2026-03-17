@@ -1,12 +1,12 @@
-// CF Pages Function: proxy /proposals/* to proposals SPA frontend (dc-dev.pages.dev)
-// Strips /proposals prefix. Includes SPA fallback: if upstream 404 + no file extension, serve index.html
-const ORIGIN = 'https://dc-dev.pages.dev';
+// CF Pages Function: proxy /modeling/* to DaisyChain SPA (dc-modeling.pages.dev)
+// Strips /modeling prefix. Includes SPA fallback: if upstream 404 + no file extension, serve index.html
+const ORIGIN = 'https://dc-modeling.pages.dev';
 
 const HAS_EXTENSION = /\.[a-zA-Z0-9]+$/;
 
 export const onRequest: PagesFunction = async (context) => {
   const url = new URL(context.request.url);
-  const path = url.pathname.replace(/^\/proposals/, '') || '/';
+  const path = url.pathname.replace(/^\/modeling/, '') || '/';
   const targetUrl = `${ORIGIN}${path}${url.search}`;
 
   const headers = new Headers(context.request.headers);
@@ -25,7 +25,7 @@ export const onRequest: PagesFunction = async (context) => {
   // SPA fallback: if 404 and path has no file extension, serve index.html
   if (response.status === 404 && !HAS_EXTENSION.test(path)) {
     const fallback = await fetch(`${ORIGIN}/index.html`, {
-      headers: { 'Host': new URL(ORIGIN).host },
+      headers: { Host: new URL(ORIGIN).host },
     });
     return new Response(fallback.body, {
       status: 200,

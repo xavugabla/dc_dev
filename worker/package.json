@@ -1,5 +1,5 @@
 {
-  "name": "dc-dev-gateway",
+  "name": "dc-hub-gateway",
   "private": true,
   "scripts": {
     "dev": "wrangler dev",

@@ -1,15 +1,15 @@
-// CF Pages Function: proxy /crm/* to CRM frontend (notion-sync-7ja.pages.dev)
-// Strips /crm prefix and forwards remainder to origin
+// CF Pages Function: proxy /notion-sync/* to Notion Sync frontend (notion-sync-7ja.pages.dev)
+// Strips /notion-sync prefix and forwards remainder to origin
 const ORIGIN = 'https://notion-sync-7ja.pages.dev';
 
 export const onRequest: PagesFunction = async (context) => {
   const url = new URL(context.request.url);
-  const path = url.pathname.replace(/^\/crm/, '') || '/';
+  const path = url.pathname.replace(/^\/notion-sync/, '') || '/';
   const targetUrl = `${ORIGIN}${path}${url.search}`;
 
   const headers = new Headers(context.request.headers);
   headers.set('Host', new URL(ORIGIN).host);
-  headers.delete('cookie'); // Don't forward hub session cookie
+  headers.delete('cookie');
 
   const response = await fetch(targetUrl, {
     method: context.request.method,
