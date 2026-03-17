@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://postgres:postgres@localhost:5432/neondb"
     admin_secret: str = "change-me"
     dc_async_url: str = "http://localhost:8002"
+    partner_api_url: str = "http://localhost:8003"
     cors_origins: str = ""
     session_ttl: int = 60 * 60 * 24 * 30  # 30 days
     debug: bool = False
@@ -25,6 +26,7 @@ settings = Settings(
     database_url=os.environ.get("DATABASE_URL", Settings.model_fields["database_url"].default),
     admin_secret=os.environ.get("ADMIN_SECRET", Settings.model_fields["admin_secret"].default),
     dc_async_url=os.environ.get("DC_ASYNC_URL", Settings.model_fields["dc_async_url"].default),
+    partner_api_url=os.environ.get("PARTNER_API_URL", Settings.model_fields["partner_api_url"].default),
     cors_origins=os.environ.get("CORS_ORIGINS", ""),
     debug=os.environ.get("DEBUG", "false").lower() == "true",
     google_client_id=os.environ.get("GOOGLE_CLIENT_ID", ""),

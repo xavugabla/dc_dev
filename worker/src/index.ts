@@ -4,6 +4,8 @@ export interface Env {
   HUB_ORIGIN: string;
   ONE_CLICK_ORIGIN?: string;
   PIPELINE_ORIGIN?: string;
+  PARTNER_PORTAL_ORIGIN?: string;  // CF Pages URL for partner portal frontend
+  PARTNER_API_ORIGIN?: string;     // Cloud Run URL for partner portal API
 }
 
 const SESSION_COOKIE = "dc_session";
@@ -12,6 +14,12 @@ const TOKEN_TTL = 60 * 60 * 24; // 24 hours
 const PUBLIC_PATHS = ["/login", "/api/request-access", "/api/auth"];
 const ADMIN_PATH = "/admin";
 const ADMIN_API = "/api/admin";
+
+// dc_dev admin emails — these get X-DC-Admin: true when proxied to partner services
+const DC_ADMIN_EMAILS = new Set([
+  "masterxavuga@gmail.com",
+  // Add other admin emails here
+]);
 
 function isPublicPath(pathname: string): boolean {
   return (
@@ -102,7 +110,7 @@ export default {
     if (isAdminPath(pathname)) {
       const key = url.searchParams.get("key");
       if (key !== env.ADMIN_SECRET) return new Response("Unauthorized", { status: 401 });
-      return proxyToOrigin(request, env, pathname);
+      return proxyToOrigin(request, env, pathname, null);
     }
 
     // API: request access
@@ -112,16 +120,17 @@ export default {
     }
 
     // Auth check for protected routes
+    let email: string | null = null;
     if (!isPublicPath(pathname)) {
       const cookie = request.headers.get("Cookie");
       const sessionId = cookie?.match(new RegExp(`${SESSION_COOKIE}=([^;]+)`))?.[1];
       if (!sessionId) return redirect("/login");
-      const email = await getSession(env, sessionId);
+      email = await getSession(env, sessionId);
       if (!email) return redirect("/login");
     }
 
     // Route to origin
-    return proxyToOrigin(request, env, pathname);
+    return proxyToOrigin(request, env, pathname, email);
   },
 };
 
@@ -141,7 +150,7 @@ async function handleRequestAccess(request: Request, env: Env): Promise<Response
   const ct = request.headers.get("Content-Type") || "";
   let email: string, message: string;
   if (ct.includes("application/json")) {
-    const body = await request.json();
+    const body = await request.json() as Record<string, unknown>;
     email = String(body.email || "").trim().toLowerCase();
     message = String(body.message || "").trim();
   } else {
@@ -179,7 +188,7 @@ async function handleAdmin(request: Request, env: Env, pathname: string): Promis
     const ct = request.headers.get("Content-Type") || "";
     let email: string;
     if (ct.includes("application/json")) {
-      const body = await request.json();
+      const body = await request.json() as Record<string, unknown>;
       email = String(body.email || "").trim().toLowerCase();
     } else {
       const form = await request.formData();
@@ -200,16 +209,48 @@ async function handleAdmin(request: Request, env: Env, pathname: string): Promis
   return new Response("Not found", { status: 404 });
 }
 
-async function proxyToOrigin(request: Request, env: Env, pathname: string): Promise<Response> {
+async function proxyToOrigin(request: Request, env: Env, pathname: string, email: string | null): Promise<Response> {
   const oneClickOrigin = env.ONE_CLICK_ORIGIN;
   const pipelineOrigin = env.PIPELINE_ORIGIN;
+  const partnerPortalOrigin = env.PARTNER_PORTAL_ORIGIN;
+  const partnerApiOrigin = env.PARTNER_API_ORIGIN;
+
   const isPipeline = pipelineOrigin && pathname.startsWith("/pipeline");
   const isOneClick = oneClickOrigin && pathname.startsWith("/one-click-dc");
-  const origin = isPipeline ? pipelineOrigin : isOneClick ? oneClickOrigin : env.HUB_ORIGIN;
-  const targetPath = isPipeline ? pathname.slice("/pipeline".length) || "/" : pathname;
+  const isPartnerPortal = partnerPortalOrigin && pathname.startsWith("/partner-portal");
+  const isPartnerApi = partnerApiOrigin && pathname.startsWith("/api/partner");
+
+  let origin: string;
+  let targetPath: string;
+
+  if (isPartnerApi) {
+    origin = partnerApiOrigin;
+    // Rewrite /api/partner/* → /api/*
+    targetPath = "/api" + pathname.slice("/api/partner".length);
+  } else if (isPartnerPortal) {
+    origin = partnerPortalOrigin;
+    targetPath = pathname; // CF Pages serves at /partner-portal/ base
+  } else if (isPipeline) {
+    origin = pipelineOrigin;
+    targetPath = pathname.slice("/pipeline".length) || "/";
+  } else if (isOneClick) {
+    origin = oneClickOrigin!;
+    targetPath = pathname;
+  } else {
+    origin = env.HUB_ORIGIN;
+    targetPath = pathname;
+  }
+
   const targetUrl = `${origin}${targetPath}${new URL(request.url).search}`;
   const headers = new Headers(request.headers);
   headers.set("Host", new URL(origin).host);
+
+  // Inject identity headers for partner portal routes
+  if ((isPartnerApi || isPartnerPortal) && email) {
+    headers.set("X-DC-User-Email", email);
+    headers.set("X-DC-Admin", DC_ADMIN_EMAILS.has(email) ? "true" : "false");
+  }
+
   const res = await fetch(targetUrl, {
     method: request.method,
     headers,

@@ -13,6 +13,11 @@ kv_namespaces = [
 # ONE_CLICK_ORIGIN - e.g. https://one-click-dc.pages.dev (optional, for /one-click-dc/* routing)
 # PIPELINE_ORIGIN - dc_async Cloud Run URL (optional, for /pipeline/* routing)
 #   Set via: npx wrangler secret put PIPELINE_ORIGIN
+# PARTNER_PORTAL_ORIGIN - CF Pages URL for partner portal frontend
+# PARTNER_API_ORIGIN - Cloud Run URL for partner portal API
+#   Set via: npx wrangler secret put PARTNER_API_ORIGIN
 
 [vars]
 HUB_ORIGIN = "https://dc-dev-hub.pages.dev"
+PARTNER_PORTAL_ORIGIN = "https://dc-partner-portal.pages.dev"
+PARTNER_API_ORIGIN = "https://partner-portal-api.us-central1.run.app"

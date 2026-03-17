@@ -30,9 +30,8 @@ export const projects: Project[] = [
     id: 'one-click-dc',
     name: 'DaisyChain',
     description: 'Energy analysis and utility cost modeling',
-    href: 'https://dc-dev.pages.dev',
-    external: true,
-    statusUrl: 'https://dc-dev.pages.dev',
+    href: '/proposals/',
+    statusUrl: '/api/proposals/health',
     details:
       'Full-stack energy platform (React + Hono) for building-level utility analysis. ' +
       'Includes calculation graph engine, proposal generation, rate sensitivity modeling, ' +
@@ -42,10 +41,21 @@ export const projects: Project[] = [
     id: 'pipeline',
     name: 'Pipeline CRM',
     description: 'Notion CRM pipeline analytics',
-    href: '/api/pipeline/docs',
+    href: '/crm/',
+    statusUrl: '/api/crm/health',
     details:
       'Lightweight analytics layer on top of Notion databases. ' +
       'Syncs deal pipeline data via the Notion API and exposes summary endpoints ' +
       'for revenue forecasting and stage-conversion metrics.',
+  },
+  {
+    id: 'partner-portal',
+    name: 'Partner Portal',
+    description: 'Vendor and channel partner management',
+    href: '/partner-portal/',
+    statusUrl: '/api/partner/health',
+    details:
+      'Partner management platform for vendor onboarding, deal pipeline tracking, ' +
+      'job management, and resource library. Integrates with Notion for data sync.',
   },
 ];
