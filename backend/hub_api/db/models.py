@@ -20,6 +20,8 @@ class AuthUser(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
+    name = Column(String(255), nullable=True)
+    picture = Column(Text, nullable=True)
     status = Column(String(20), nullable=False, default="pending")  # pending, approved, revoked
     created_at = Column(DateTime(timezone=True), default=_utcnow)
     approved_at = Column(DateTime(timezone=True), nullable=True)

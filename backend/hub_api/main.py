@@ -7,6 +7,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from hub_api.config import settings
+from sqlalchemy import text
+
 from hub_api.db.connection import Base, engine
 from hub_api.db.models import AuthUser, AuthSession, AuthToken, AuthAccessRequest  # noqa: F401
 from hub_api.routes import auth, admin, pipeline, health
@@ -20,6 +22,16 @@ async def lifespan(app: FastAPI):
         if t.name.startswith("auth_")
     ]
     Base.metadata.create_all(bind=engine, tables=auth_tables)
+
+    # Add new columns if they don't exist (safe to run repeatedly)
+    with engine.begin() as conn:
+        for col, col_type in [("name", "VARCHAR(255)"), ("picture", "TEXT")]:
+            try:
+                conn.execute(text(
+                    f"ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS {col} {col_type}"
+                ))
+            except Exception:
+                pass  # Column already exists
     yield
 
 

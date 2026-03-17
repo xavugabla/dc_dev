@@ -2,10 +2,11 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 ---
 
-<BaseLayout title="Approve access" description="Approve access requests">
+<BaseLayout title="Manage users" description="Manage team access">
   <section class="admin-section">
-    <h1 class="admin-title">Approve access</h1>
-    <p class="admin-subtitle">Pending requests. Approve to generate a magic link to send.</p>
+    <h1 class="admin-title">Manage users</h1>
+    <p class="admin-subtitle">Add or revoke team members who can sign in with Google.</p>
+
     <div id="admin-content">
       <p class="loading">Loading…</p>
     </div>
@@ -15,74 +16,139 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 <script>
   const url = new URL(window.location.href);
   const key = url.searchParams.get("key");
-  const apiBase = ""; // same origin — Pages Functions handle API routes
+  const apiBase = "";
+
   if (!key) {
-    document.getElementById("admin-content")!.innerHTML = '<p class="error">Add ?key=YOUR_ADMIN_SECRET to the URL.</p>';
+    document.getElementById("admin-content")!.innerHTML =
+      '<p class="error">Add ?key=YOUR_ADMIN_SECRET to the URL.</p>';
   } else {
-    loadPending();
+    loadUsers();
   }
 
-  async function loadPending() {
-    const res = await fetch(`${apiBase}/api/admin/pending?key=${encodeURIComponent(key)}`);
+  async function loadUsers() {
+    const res = await fetch(`${apiBase}/api/admin/users?key=${encodeURIComponent(key!)}`);
     if (!res.ok) {
-      document.getElementById("admin-content")!.innerHTML = '<p class="error">Failed to load. Check your key.</p>';
+      document.getElementById("admin-content")!.innerHTML =
+        '<p class="error">Failed to load. Check your key.</p>';
       return;
     }
-    const { pending } = await res.json();
-    render(pending);
+    const { users } = await res.json();
+    render(users);
   }
 
-  function render(pending: { email: string; message?: string; createdAt: number }[]) {
+  interface User {
+    id: number;
+    email: string;
+    name?: string;
+    status: string;
+    createdAt?: string;
+    approvedAt?: string;
+  }
+
+  function render(users: User[]) {
     const el = document.getElementById("admin-content")!;
-    if (pending.length === 0) {
-      el.innerHTML = '<p class="empty">No pending requests.</p>';
-      return;
-    }
+    const approved = users.filter((u: User) => u.status === "approved");
+    const revoked = users.filter((u: User) => u.status === "revoked");
+
     el.innerHTML = `
-      <ul class="pending-list">
-        ${pending.map((p) => `
-          <li class="pending-item">
-            <div class="pending-info">
-              <strong>${escapeHtml(p.email)}</strong>
-              ${p.message ? `<span class="pending-msg">${escapeHtml(p.message)}</span>` : ""}
-            </div>
-            <button class="btn btn-primary btn-approve" data-email="${escapeHtml(p.email)}">Approve</button>
-          </li>
-        `).join("")}
-      </ul>
-      <div id="approval-result" class="approval-result" style="display:none"></div>
+      <div class="add-user-form">
+        <h2 class="section-label">Add user</h2>
+        <div class="add-row">
+          <input type="email" id="new-email" placeholder="email@example.com" class="input" />
+          <button id="add-btn" class="btn btn-primary">Add</button>
+        </div>
+        <div id="add-result" class="add-result" style="display:none"></div>
+      </div>
+
+      <h2 class="section-label">Approved (${approved.length})</h2>
+      ${approved.length > 0 ? `
+        <ul class="user-list">
+          ${approved.map((u: User) => `
+            <li class="user-item">
+              <div class="user-info">
+                <strong>${esc(u.email)}</strong>
+                ${u.name ? `<span class="user-name">${esc(u.name)}</span>` : ""}
+              </div>
+              <button class="btn btn-ghost btn-revoke" data-email="${esc(u.email)}">Revoke</button>
+            </li>
+          `).join("")}
+        </ul>
+      ` : '<p class="empty">No approved users yet.</p>'}
+
+      ${revoked.length > 0 ? `
+        <h2 class="section-label">Revoked (${revoked.length})</h2>
+        <ul class="user-list revoked">
+          ${revoked.map((u: User) => `
+            <li class="user-item">
+              <div class="user-info">
+                <strong class="revoked-email">${esc(u.email)}</strong>
+              </div>
+              <button class="btn btn-ghost btn-restore" data-email="${esc(u.email)}">Restore</button>
+            </li>
+          `).join("")}
+        </ul>
+      ` : ""}
     `;
-    el.querySelectorAll(".btn-approve").forEach((btn) => {
-      btn.addEventListener("click", () => approve((btn as HTMLButtonElement).dataset.email!));
+
+    // Add user handler
+    document.getElementById("add-btn")?.addEventListener("click", addUser);
+    document.getElementById("new-email")?.addEventListener("keydown", (e) => {
+      if ((e as KeyboardEvent).key === "Enter") addUser();
+    });
+
+    // Revoke handlers
+    el.querySelectorAll(".btn-revoke").forEach((btn) => {
+      btn.addEventListener("click", () => revokeUser((btn as HTMLButtonElement).dataset.email!));
+    });
+
+    // Restore handlers
+    el.querySelectorAll(".btn-restore").forEach((btn) => {
+      btn.addEventListener("click", () => restoreUser((btn as HTMLButtonElement).dataset.email!));
     });
   }
 
-  async function approve(email: string) {
-    const res = await fetch(`${apiBase}/api/admin/approve`, {
+  async function addUser() {
+    const input = document.getElementById("new-email") as HTMLInputElement;
+    const email = input.value.trim();
+    if (!email) return;
+
+    const res = await fetch(`${apiBase}/api/admin/add-user`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, key }),
     });
     const data = await res.json();
-    const resultEl = document.getElementById("approval-result")!;
+    const resultEl = document.getElementById("add-result")!;
     resultEl.style.display = "block";
+
     if (data.ok) {
-      resultEl.innerHTML = `
-        <p class="success">Approved <strong>${escapeHtml(data.email)}</strong>. Send them this link (valid 24h):</p>
-        <input type="text" class="magic-link-input" value="${escapeHtml(data.magicLink)}" readonly />
-        <button class="btn btn-ghost btn-copy">Copy</button>
-      `;
-      resultEl.querySelector(".btn-copy")?.addEventListener("click", () => {
-        navigator.clipboard.writeText(data.magicLink);
-        (resultEl.querySelector(".btn-copy") as HTMLButtonElement).textContent = "Copied!";
-      });
-      loadPending();
+      resultEl.innerHTML = `<span class="success">${esc(data.email)} added.</span>`;
+      input.value = "";
+      loadUsers();
     } else {
-      resultEl.innerHTML = `<p class="error">${escapeHtml(data.error || "Failed")}</p>`;
+      resultEl.innerHTML = `<span class="error">${esc(data.error || "Failed")}</span>`;
     }
   }
 
-  function escapeHtml(s: string) {
+  async function revokeUser(email: string) {
+    await fetch(`${apiBase}/api/admin/revoke`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, key }),
+    });
+    loadUsers();
+  }
+
+  async function restoreUser(email: string) {
+    await fetch(`${apiBase}/api/admin/add-user`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, key }),
+    });
+    loadUsers();
+  }
+
+  function esc(s: string) {
     const div = document.createElement("div");
     div.textContent = s;
     return div.innerHTML;
@@ -107,6 +173,48 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     margin: 0 0 1.5rem;
   }
 
+  .section-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted-foreground);
+    margin: 1.5rem 0 0.75rem;
+  }
+
+  .add-user-form {
+    margin-bottom: 1rem;
+  }
+
+  .add-row {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .input {
+    flex: 1;
+    height: 36px;
+    padding: 0 1rem;
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--foreground);
+    transition: border-color var(--transition);
+  }
+
+  .input:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 2px var(--primary-glow);
+  }
+
+  .add-result {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+  }
+
   .loading, .empty {
     color: var(--muted-foreground);
   }
@@ -119,58 +227,49 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     color: var(--secondary);
   }
 
-  .pending-list {
+  .user-list {
     list-style: none;
     margin: 0;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.5rem;
   }
 
-  .pending-item {
+  .user-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
   }
 
-  .pending-info {
+  .user-info {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.15rem;
   }
 
-  .pending-msg {
-    font-size: 0.8rem;
+  .user-name {
+    font-size: 0.75rem;
     color: var(--muted-foreground);
   }
 
-  .approval-result {
-    margin-top: 1.5rem;
-    padding: 1rem;
-    background: var(--card);
-    border-radius: var(--radius-md);
-    border-left: 3px solid var(--secondary);
+  .revoked-email {
+    text-decoration: line-through;
+    opacity: 0.6;
   }
 
-  .magic-link-input {
-    width: 100%;
-    margin: 0.5rem 0;
-    padding: 0.5rem;
-    font-family: var(--font-mono);
+  .btn-revoke {
+    color: var(--destructive);
     font-size: 0.8rem;
-    background: var(--input);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--foreground);
   }
 
-  .btn-copy {
-    margin-top: 0.5rem;
+  .btn-restore {
+    color: var(--secondary);
+    font-size: 0.8rem;
   }
 </style>

@@ -1,6 +1,5 @@
-"""Admin routes: list pending requests, approve users, generate magic links."""
+"""Admin routes: manage user whitelist."""
 
-import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Request
@@ -10,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from hub_api.config import settings
 from hub_api.db.connection import get_db
-from hub_api.db.models import AuthAccessRequest, AuthToken, AuthUser
+from hub_api.db.models import AuthUser
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -20,90 +19,87 @@ def _utcnow() -> datetime:
 
 
 def _validate_admin_key(request: Request, key: str | None = None, body_key: str | None = None) -> bool:
-    """Check admin key from query param, Authorization header, or request body."""
-    # Query param
     if key and key == settings.admin_secret:
         return True
-    # Authorization header
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer ") and auth[7:] == settings.admin_secret:
         return True
-    # Body key (passed from approve endpoint)
     if body_key and body_key == settings.admin_secret:
         return True
     return False
 
 
-# ---------- pending ----------
+# ---------- list users ----------
 
 
-@router.get("/pending")
-async def pending(request: Request, key: str | None = None, db: Session = Depends(get_db)):
+@router.get("/users")
+async def list_users(request: Request, key: str | None = None, db: Session = Depends(get_db)):
     if not _validate_admin_key(request, key=key):
         return JSONResponse({"error": "Unauthorized"}, status_code=401)
 
-    requests = (
-        db.query(AuthAccessRequest)
-        .filter(AuthAccessRequest.status == "pending")
-        .order_by(AuthAccessRequest.created_at.asc())
-        .all()
-    )
+    users = db.query(AuthUser).order_by(AuthUser.created_at.asc()).all()
 
     return {
-        "pending": [
+        "users": [
             {
-                "email": r.email,
-                "message": r.message,
-                "createdAt": r.created_at.isoformat() if r.created_at else None,
+                "id": u.id,
+                "email": u.email,
+                "name": u.name,
+                "status": u.status,
+                "createdAt": u.created_at.isoformat() if u.created_at else None,
+                "approvedAt": u.approved_at.isoformat() if u.approved_at else None,
             }
-            for r in requests
+            for u in users
         ]
     }
 
 
-# ---------- approve ----------
+# ---------- add user (direct whitelist) ----------
 
 
-class ApproveBody(BaseModel):
+class AddUserBody(BaseModel):
     email: str
     key: str | None = None
 
 
-@router.post("/approve")
-async def approve(body: ApproveBody, request: Request, db: Session = Depends(get_db)):
+@router.post("/add-user")
+async def add_user(body: AddUserBody, request: Request, db: Session = Depends(get_db)):
     if not _validate_admin_key(request, body_key=body.key):
         return JSONResponse({"error": "Unauthorized"}, status_code=401)
 
     email = body.email.strip().lower()
-    if not email:
-        return JSONResponse({"error": "Email required"}, status_code=400)
+    if not email or "@" not in email:
+        return JSONResponse({"error": "Invalid email"}, status_code=400)
 
-    # Update access request status
-    access_req = (
-        db.query(AuthAccessRequest)
-        .filter(AuthAccessRequest.email == email, AuthAccessRequest.status == "pending")
-        .first()
-    )
-    if access_req:
-        access_req.status = "approved"
-
-    # Upsert user as approved
-    user = db.query(AuthUser).filter(AuthUser.email == email).first()
-    if user:
-        user.status = "approved"
-        user.approved_at = _utcnow()
+    existing = db.query(AuthUser).filter(AuthUser.email == email).first()
+    if existing:
+        if existing.status == "approved":
+            return {"ok": True, "message": "Already approved", "email": email}
+        existing.status = "approved"
+        existing.approved_at = _utcnow()
     else:
         db.add(AuthUser(email=email, status="approved", approved_at=_utcnow()))
 
-    # Generate magic link token
-    token_id = uuid.uuid4()
-    db.add(AuthToken(id=token_id, email=email, expires_at=AuthToken.new_expiry()))
-    db.flush()
+    return {"ok": True, "message": "User added to whitelist", "email": email}
 
-    # Use X-Forwarded-Host/Proto from the proxy to generate correct URL
-    fwd_host = request.headers.get("X-Forwarded-Host", request.url.netloc)
-    fwd_proto = request.headers.get("X-Forwarded-Proto", request.url.scheme)
-    origin = f"{fwd_proto}://{fwd_host}"
-    magic_link = f"{origin}/api/auth/verify?t={token_id}"
 
-    return {"ok": True, "magicLink": magic_link, "email": email}
+# ---------- revoke user ----------
+
+
+class RevokeBody(BaseModel):
+    email: str
+    key: str | None = None
+
+
+@router.post("/revoke")
+async def revoke(body: RevokeBody, request: Request, db: Session = Depends(get_db)):
+    if not _validate_admin_key(request, body_key=body.key):
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+
+    email = body.email.strip().lower()
+    user = db.query(AuthUser).filter(AuthUser.email == email).first()
+    if not user:
+        return JSONResponse({"error": "User not found"}, status_code=404)
+
+    user.status = "revoked"
+    return {"ok": True, "message": "User revoked", "email": email}
