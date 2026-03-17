@@ -1,8 +1,14 @@
 // CF Pages Function: proxy /api/crm/* to dc-async-api Cloud Run
 // Strips /api/crm prefix — dc_async routes are /health, /scripts/*, etc.
+import { getIdentityToken } from '../../_lib/gcp-auth';
+
+interface Env {
+  GCP_SERVICE_ACCOUNT_KEY: string;
+}
+
 const BACKEND = 'https://dc-async-api-216566158850.us-central1.run.app';
 
-export const onRequest: PagesFunction = async (context) => {
+export const onRequest: PagesFunction<Env> = async (context) => {
   const url = new URL(context.request.url);
   // /api/crm/health → /health, /api/crm/scripts/foo → /scripts/foo
   const path = url.pathname.replace(/^\/api\/crm/, '') || '/';
@@ -12,6 +18,11 @@ export const onRequest: PagesFunction = async (context) => {
   headers.set('X-Forwarded-Host', url.host);
   headers.set('X-Forwarded-Proto', url.protocol.replace(':', ''));
   headers.delete('host');
+
+  if (context.env.GCP_SERVICE_ACCOUNT_KEY) {
+    const idToken = await getIdentityToken(context.env.GCP_SERVICE_ACCOUNT_KEY, BACKEND);
+    headers.set('Authorization', `Bearer ${idToken}`);
+  }
 
   const response = await fetch(backendUrl, {
     method: context.request.method,

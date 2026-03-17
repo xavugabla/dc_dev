@@ -1,3 +1,5 @@
+import { getIdentityToken } from './gcp-auth';
+
 export interface Env {
   AUTH: KVNamespace;
   ADMIN_SECRET: string;
@@ -6,6 +8,7 @@ export interface Env {
   PIPELINE_ORIGIN?: string;
   PARTNER_PORTAL_ORIGIN?: string;  // CF Pages URL for partner portal frontend
   PARTNER_API_ORIGIN?: string;     // Cloud Run URL for partner portal API
+  GCP_SERVICE_ACCOUNT_KEY?: string;
 }
 
 const SESSION_COOKIE = "dc_session";
@@ -249,6 +252,12 @@ async function proxyToOrigin(request: Request, env: Env, pathname: string, email
   if ((isPartnerApi || isPartnerPortal) && email) {
     headers.set("X-DC-User-Email", email);
     headers.set("X-DC-Admin", DC_ADMIN_EMAILS.has(email) ? "true" : "false");
+  }
+
+  // Add GCP IAM auth for Cloud Run backends
+  if (env.GCP_SERVICE_ACCOUNT_KEY && (isPartnerApi || isPipeline)) {
+    const idToken = await getIdentityToken(env.GCP_SERVICE_ACCOUNT_KEY, origin);
+    headers.set("Authorization", `Bearer ${idToken}`);
   }
 
   const res = await fetch(targetUrl, {

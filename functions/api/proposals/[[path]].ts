@@ -1,8 +1,14 @@
 // CF Pages Function: proxy /api/proposals/* to one-click-dc-api Cloud Run
 // Strips /api/proposals and re-adds /api — one_click_dc routes are /api/graphs, /api/buildings, etc.
+import { getIdentityToken } from '../../_lib/gcp-auth';
+
+interface Env {
+  GCP_SERVICE_ACCOUNT_KEY: string;
+}
+
 const BACKEND = 'https://one-click-dc-api-216566158850.us-central1.run.app';
 
-export const onRequest: PagesFunction = async (context) => {
+export const onRequest: PagesFunction<Env> = async (context) => {
   const url = new URL(context.request.url);
   // /api/proposals/health → /health, /api/proposals/graphs → /api/graphs
   const suffix = url.pathname.replace(/^\/api\/proposals/, '') || '/';
@@ -13,6 +19,11 @@ export const onRequest: PagesFunction = async (context) => {
   headers.set('X-Forwarded-Host', url.host);
   headers.set('X-Forwarded-Proto', url.protocol.replace(':', ''));
   headers.delete('host');
+
+  if (context.env.GCP_SERVICE_ACCOUNT_KEY) {
+    const idToken = await getIdentityToken(context.env.GCP_SERVICE_ACCOUNT_KEY, BACKEND);
+    headers.set('Authorization', `Bearer ${idToken}`);
+  }
 
   const response = await fetch(backendUrl, {
     method: context.request.method,
