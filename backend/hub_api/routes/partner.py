@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from hub_api.config import settings
 from hub_api.db.connection import get_db
 from hub_api.db.models import AuthSession
+from hub_api.gcp_auth import get_id_token
 
 router = APIRouter(prefix="/api/partner", tags=["partner"])
 
@@ -67,6 +68,11 @@ async def proxy_partner(path: str, request: Request, db: Session = Depends(get_d
     # Inject identity headers
     headers["x-dc-user-email"] = email
     headers["x-dc-admin"] = "true" if email in DC_ADMIN_EMAILS else "false"
+
+    # Add GCP OIDC token for Cloud Run service-to-service auth
+    id_token = get_id_token(settings.partner_api_url)
+    if id_token:
+        headers["authorization"] = f"Bearer {id_token}"
 
     body = await request.body() if request.method not in ("GET", "HEAD") else None
 

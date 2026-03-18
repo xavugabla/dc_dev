@@ -11,6 +11,7 @@ export interface Env {
   PIPELINE_ORIGIN?: string;
   PARTNER_PORTAL_ORIGIN?: string;
   PARTNER_API_ORIGIN?: string;
+  BD_TOOLS_ORIGIN?: string;        // bd-tools CF Pages (bd-tools-5qa.pages.dev)
   GCP_SERVICE_ACCOUNT_KEY?: string;
 }
 
@@ -223,6 +224,7 @@ async function proxyToOrigin(request: Request, env: Env, pathname: string, email
   const pipelineOrigin = env.PIPELINE_ORIGIN;
   const partnerPortalOrigin = env.PARTNER_PORTAL_ORIGIN;
   const partnerApiOrigin = env.PARTNER_API_ORIGIN;
+  const bdToolsOrigin = env.BD_TOOLS_ORIGIN;
 
   const isModelingApi = modelingApiOrigin && pathname.startsWith("/api/modeling");
   const isNotionSyncApi = notionSyncApiOrigin && pathname.startsWith("/api/notion-sync");
@@ -231,13 +233,16 @@ async function proxyToOrigin(request: Request, env: Env, pathname: string, email
   const isNotionSync = notionSyncOrigin && pathname.startsWith("/notion-sync");
   const isPartnerPortal = partnerPortalOrigin && pathname.startsWith("/partner-portal");
   const isPipeline = pipelineOrigin && pathname.startsWith("/pipeline");
+  const isBdTools = bdToolsOrigin && pathname.startsWith("/bd-tools");
 
   let origin: string;
   let targetPath: string;
 
   if (isPartnerApi) {
     origin = partnerApiOrigin;
-    targetPath = "/api" + pathname.slice("/api/partner".length);
+    const suffix = pathname.slice("/api/partner".length);
+    // Health routes are at root level (no /api prefix) on the partner backend
+    targetPath = suffix.startsWith("/health") ? suffix : "/api" + suffix;
   } else if (isModelingApi) {
     origin = modelingApiOrigin;
     targetPath = pathname.replace(/^\/api\/modeling/, "") || "/";
@@ -256,6 +261,9 @@ async function proxyToOrigin(request: Request, env: Env, pathname: string, email
   } else if (isPipeline) {
     origin = pipelineOrigin;
     targetPath = pathname.slice("/pipeline".length) || "/";
+  } else if (isBdTools) {
+    origin = bdToolsOrigin;
+    targetPath = pathname.replace(/^\/bd-tools/, "") || "/";
   } else {
     origin = env.HUB_ORIGIN;
     targetPath = pathname;

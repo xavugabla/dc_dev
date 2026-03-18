@@ -77,7 +77,7 @@ export const projectConfigs: ProjectConfig[] = [
     name: 'Partner Portal',
     description: 'Vendor and channel partner management',
     frontend: { origin: 'https://dc-partner-portal.pages.dev' },
-    api: { origin: 'https://partner-portal-api.us-central1.run.app', pathPrefix: '/api/partner' },
+    api: { origin: 'https://partner-portal-api-216566158850.us-central1.run.app', pathPrefix: '/api/partner' },
     endpoints: ['/api/partner/health/comprehensive'],
     deploy: {
       cloudRun: { projectId: '216566158850', location: 'us-central1', serviceName: 'partner-portal-api' },
@@ -86,5 +86,16 @@ export const projectConfigs: ProjectConfig[] = [
     details:
       'Partner management platform for vendor onboarding, deal pipeline tracking, ' +
       'job management, and resource library. Integrates with Notion for data sync.',
+  },
+  {
+    id: 'bd-tools',
+    slug: 'bd-tools',
+    name: 'BD Tools',
+    description: 'Internal business development tools',
+    frontend: { origin: 'https://bd-tools-5qa.pages.dev' },
+    deploy: {
+      cloudflarePages: { accountId: '', projectName: 'bd-tools' },
+    },
+    details: 'Static HTML tools for the business development team. Served behind hub auth.',
   },
 ];

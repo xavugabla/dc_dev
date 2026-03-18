@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from hub_api.config import settings
 from hub_api.db.connection import get_db
 from hub_api.db.models import AuthSession
+from hub_api.gcp_auth import get_id_token
 
 router = APIRouter(prefix="/api/pipeline", tags=["pipeline"])
 
@@ -60,6 +61,11 @@ async def proxy_pipeline(path: str, request: Request, db: Session = Depends(get_
     headers = dict(request.headers)
     headers.pop("host", None)
     headers.pop("cookie", None)  # Don't forward session cookie to dc_async
+
+    # Add GCP OIDC token for Cloud Run service-to-service auth
+    id_token = get_id_token(settings.dc_async_url)
+    if id_token:
+        headers["authorization"] = f"Bearer {id_token}"
 
     body = await request.body() if request.method not in ("GET", "HEAD") else None
 

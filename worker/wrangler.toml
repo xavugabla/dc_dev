@@ -24,4 +24,5 @@ MODELING_API_ORIGIN = "https://one-click-dc-api-216566158850.us-central1.run.app
 NOTION_SYNC_ORIGIN = "https://notion-sync-7ja.pages.dev"
 NOTION_SYNC_API_ORIGIN = "https://dc-async-api-216566158850.us-central1.run.app"
 PARTNER_PORTAL_ORIGIN = "https://dc-partner-portal.pages.dev"
-PARTNER_API_ORIGIN = "https://partner-portal-api.us-central1.run.app"
+PARTNER_API_ORIGIN = "https://partner-portal-api-216566158850.us-central1.run.app"
+BD_TOOLS_ORIGIN = "https://bd-tools-5qa.pages.dev"
