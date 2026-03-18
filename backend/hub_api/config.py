@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: str = ""
     google_redirect_uri: str = "https://dc-hub.pages.dev/api/auth/callback"
+    # Deployment status (Cloud Run, Cloudflare)
+    cloudflare_api_token: str = ""
+    cloudflare_account_id: str = ""
 
     class Config:
         env_file = ".env"
@@ -32,4 +35,6 @@ settings = Settings(
     google_client_id=os.environ.get("GOOGLE_CLIENT_ID", ""),
     google_client_secret=os.environ.get("GOOGLE_CLIENT_SECRET", ""),
     google_redirect_uri=os.environ.get("GOOGLE_REDIRECT_URI", Settings.model_fields["google_redirect_uri"].default),
+    cloudflare_api_token=os.environ.get("CLOUDFLARE_API_TOKEN", ""),
+    cloudflare_account_id=os.environ.get("CLOUDFLARE_ACCOUNT_ID", ""),
 )

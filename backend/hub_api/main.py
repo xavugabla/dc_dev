@@ -11,7 +11,7 @@ from sqlalchemy import text
 
 from hub_api.db.connection import Base, engine
 from hub_api.db.models import AuthUser, AuthSession, AuthToken, AuthAccessRequest  # noqa: F401
-from hub_api.routes import auth, admin, pipeline, partner, health
+from hub_api.routes import auth, admin, pipeline, partner, health, deployments
 
 
 @asynccontextmanager
@@ -64,3 +64,4 @@ app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(pipeline.router)
 app.include_router(partner.router)
+app.include_router(deployments.router)

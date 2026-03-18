@@ -28,6 +28,9 @@ import { projects } from '../../config/projects';
                 {p.external && <span class="external-arrow" aria-hidden="true">&#8599;</span>}
               </a>
               <span class="project-link-desc">{p.description}</span>
+              {p.hosting && (
+                <span class="project-hosting" title="Hosting">{p.hosting}</span>
+              )}
             </div>
             {p.details && (
               <details class="project-details">
@@ -202,6 +205,13 @@ import { projects } from '../../config/projects';
     flex: 1;
     font-size: 0.8125rem;
     color: var(--muted-foreground);
+  }
+
+  .project-hosting {
+    font-size: 0.6875rem;
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    white-space: nowrap;
   }
 
   /* ── Status dot ────────────────────────────── */

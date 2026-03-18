@@ -42,6 +42,15 @@ npm install
 npm run dev
 ```
 
+## Quick checks before push
+
+```bash
+npm run test   # runs config check + build
+```
+
+- **Config check** (`npm run check`): Ensures `functions/` matches `src/config/projects.config.ts` (frontend proxy per slug, API proxy for `/api/modeling` and `/api/notion-sync`; `/api/partner` is intentionally proxied by the Hub backend).
+- **Build**: Astro static build. Backend is deployed separately (Cloud Run).
+
 ## Deploy
 
 See **[DEPLOY.md](./DEPLOY.md)** for full setup: hub → Pages, Worker → auth + routing, projects under `/modeling/`, `/notion-sync/`, `/partner-portal/`.

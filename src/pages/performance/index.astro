@@ -1,32 +1,29 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { projectConfigs } from '../../config/projects.config';
 
-const services = [
-  {
-    id: 'hub',
-    name: 'Hub API',
-    healthUrl: '/api/health',
-    frontendUrl: 'https://dc-hub.pages.dev',
-  },
-  {
-    id: 'daisychain',
-    name: 'DaisyChain',
-    healthUrl: '/api/modeling/health/detailed',
-    frontendUrl: 'https://dc-modeling.pages.dev',
-  },
-  {
-    id: 'notion-sync',
-    name: 'Notion Sync',
-    healthUrl: '/api/notion-sync/health',
-    frontendUrl: 'https://notion-sync-7ja.pages.dev',
-  },
-  {
-    id: 'partner',
-    name: 'Partner Portal',
-    healthUrl: '/api/partner/health/comprehensive',
-    frontendUrl: 'https://dc-partner-portal.pages.dev',
-  },
-];
+// Hub (platform) + projects from config
+const hubService = {
+  id: 'hub',
+  deployKey: 'hub',
+  name: 'Hub API',
+  healthUrl: '/api/health',
+  frontendUrl: 'https://dc-hub.pages.dev',
+  frontendHost: 'dc-hub.pages.dev',
+  apiHost: 'dc-dev-hub-api-216566158850.us-central1.run.app',
+};
+
+const projectServices = projectConfigs.map((p) => ({
+  id: p.id,
+  deployKey: p.id,
+  name: p.name,
+  healthUrl: (p.endpoints && p.endpoints[0]) || (p.api ? `${p.api.pathPrefix}/health` : ''),
+  frontendUrl: p.frontend.origin,
+  frontendHost: new URL(p.frontend.origin).hostname,
+  apiHost: p.api ? new URL(p.api.origin).hostname : undefined,
+}));
+
+const services = [hubService, ...projectServices];
 ---
 
 <BaseLayout title="System Status" description="DaisyChain — system health & performance">
@@ -48,7 +45,7 @@ const services = [
 
     <div class="service-grid">
       {services.map((s) => (
-        <div class="service-card" data-service={s.id} data-health-url={s.healthUrl} data-frontend-url={s.frontendUrl}>
+        <div class="service-card" data-service={s.id} data-deploy-key={s.deployKey} data-health-url={s.healthUrl} data-frontend-url={s.frontendUrl}>
           <div class="card-top">
             <span class="service-name">{s.name}</span>
             <span class="status-badge checking" data-badge>Checking...</span>
@@ -72,6 +69,26 @@ const services = [
             <span class="fe-dot" data-fe-dot title="Checking..."></span>
             <span class="fe-status" data-fe-status>Checking...</span>
           </div>
+
+          <details class="hosting-section">
+            <summary class="hosting-summary">Hosting</summary>
+            <div class="hosting-content">
+              <div class="hosting-row">
+                <span class="hosting-label">Frontend</span>
+                <span class="hosting-value">Cloudflare Pages @ {s.frontendHost}</span>
+              </div>
+              {s.apiHost && (
+                <div class="hosting-row">
+                  <span class="hosting-label">API</span>
+                  <span class="hosting-value">Cloud Run @ {s.apiHost}</span>
+                </div>
+              )}
+              <div class="deploy-times" data-deploy-times>
+                <span class="hosting-label">Last deployed</span>
+                <span class="deploy-placeholder">—</span>
+              </div>
+            </div>
+          </details>
         </div>
       ))}
     </div>
@@ -262,6 +279,52 @@ const services = [
     }
   }
 
+  function formatDeployTime(iso: string | null | undefined): string {
+    if (!iso) return '—';
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+    } catch {
+      return '—';
+    }
+  }
+
+  async function loadDeployments() {
+    try {
+      const resp = await fetch('/api/status/deployments', { cache: 'no-store' });
+      if (!resp.ok) return;
+      const data = await resp.json();
+
+      document.querySelectorAll<HTMLElement>('.service-card[data-deploy-key]').forEach((card) => {
+        const deployKey = card.dataset.deployKey!;
+        const container = card.querySelector('[data-deploy-times]') as HTMLElement;
+        if (!container) return;
+
+        const entry = data[deployKey];
+        if (!entry) return;
+
+        const parts: string[] = [];
+        if (entry.cloudRun?.lastDeploy) {
+          parts.push(`Cloud Run: ${formatDeployTime(entry.cloudRun.lastDeploy)}`);
+        }
+        if (entry.cloudflarePages?.lastDeploy) {
+          parts.push(`Pages: ${formatDeployTime(entry.cloudflarePages.lastDeploy)}`);
+        }
+        if (entry.cloudflareWorker?.lastDeploy) {
+          parts.push(`Worker: ${formatDeployTime(entry.cloudflareWorker.lastDeploy)}`);
+        }
+
+        const placeholder = container.querySelector('.deploy-placeholder');
+        if (placeholder) {
+          placeholder.textContent = parts.length > 0 ? parts.join(' · ') : '—';
+          placeholder.style.display = 'block';
+        }
+      });
+    } catch {
+      // Silently ignore deploy fetch errors
+    }
+  }
+
   async function loadMetrics() {
     const placeholder = document.getElementById('metrics-placeholder')!;
     const tables = document.getElementById('metrics-tables')!;
@@ -347,6 +410,7 @@ const services = [
 
     await Promise.allSettled(promises);
     updateBanner(healthResults);
+    loadDeployments();
     loadMetrics();
   }
 
@@ -598,6 +662,85 @@ const services = [
   .fe-status {
     font-family: var(--font-mono);
     font-size: 0.6875rem;
+  }
+
+  /* ── Hosting section ──────────────────────── */
+  .hosting-section {
+    border-top: 1px solid var(--border);
+    padding-top: 0.625rem;
+    margin-top: 0.25rem;
+  }
+
+  .hosting-summary {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+  }
+
+  .hosting-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .hosting-summary::before {
+    content: '>';
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    margin-right: 0.25rem;
+    display: inline-block;
+    transition: transform 0.15s ease;
+  }
+
+  .hosting-section[open] .hosting-summary::before {
+    transform: rotate(90deg);
+  }
+
+  .hosting-content {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .hosting-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    font-size: 0.75rem;
+  }
+
+  .hosting-label {
+    font-weight: 500;
+    color: var(--muted-foreground);
+  }
+
+  .hosting-value {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--foreground);
+    word-break: break-all;
+  }
+
+  .deploy-times {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    font-size: 0.75rem;
+    margin-top: 0.375rem;
+  }
+
+  .deploy-times .hosting-label {
+    font-size: 0.6875rem;
+  }
+
+  .deploy-placeholder {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--foreground);
   }
 
   /* ── Metrics panel ────────────────────────── */

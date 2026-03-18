@@ -103,7 +103,18 @@ The `dc-dev` Pages project currently serves One Click DC. To switch:
    - Add Worker route on `dc-dev.pages.dev` pointing to your Worker.
    - Worker fetches from `dc-hub.pages.dev` and `dc-modeling.pages.dev`.
 
-## 6. Admin access
+## 6. Hub API (Cloud Run) — deployment status
+
+The Hub API exposes `/api/status/deployments` for the performance page. To fetch last deploy times from Cloud Run and Cloudflare, set these env vars on the Hub API (Cloud Run) service:
+
+| Env var | Purpose |
+|---------|---------|
+| `CLOUDFLARE_API_TOKEN` | API token with Pages Read + Workers Scripts Read. Used for Pages/Worker deployment timestamps. |
+| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID (32-char hex). Find in Dashboard → Workers & Pages → Overview. |
+
+GCP Cloud Run revision times use Application Default Credentials; no extra env vars needed when the Hub runs on Cloud Run.
+
+## 7. Admin access
 
 - **URL:** `https://dc-dev.pages.dev/admin?key=YOUR_ADMIN_SECRET`
 - Approve pending requests and copy the magic link to send to users.

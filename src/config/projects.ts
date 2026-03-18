@@ -12,14 +12,21 @@ export interface Project {
   external?: boolean;
   statusUrl?: string;
   details?: string;
+  /** Short hosting description, e.g. "Cloudflare Pages + Cloud Run" */
+  hosting?: string;
 }
 
-export const projects: Project[] = projectConfigs.map((p) => ({
-  id: p.id,
-  name: p.name,
-  description: p.description,
-  href: `/${p.slug}/`,
-  statusUrl: p.api ? `${p.api.pathPrefix}/health` : undefined,
-  external: p.external,
-  details: p.details,
-}));
+export const projects: Project[] = projectConfigs.map((p) => {
+  const parts: string[] = ['Cloudflare Pages'];
+  if (p.api) parts.push('Cloud Run');
+  return {
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    href: `/${p.slug}/`,
+    statusUrl: p.api ? `${p.api.pathPrefix}/health` : undefined,
+    external: p.external,
+    details: p.details,
+    hosting: parts.join(' + '),
+  };
+});

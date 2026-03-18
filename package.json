@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "astro dev",
     "build": "ASTRO_TELEMETRY_DISABLED=1 astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "check": "node scripts/check-config.mjs",
+    "test": "npm run check && npm run build"
   },
   "dependencies": {
     "astro": "^4.16.0"
