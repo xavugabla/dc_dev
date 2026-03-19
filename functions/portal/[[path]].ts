@@ -1,5 +1,7 @@
 // CF Pages Function: proxy /portal/* to partner portal SPA frontend
 // Strips /portal prefix. Includes SPA fallback for client-side routing.
+import { injectHomeButton } from '../_lib/home-button';
+
 const ORIGIN = 'https://dc-portal.pages.dev';
 
 const HAS_EXTENSION = /\.[a-zA-Z0-9]+$/;
@@ -27,15 +29,17 @@ export const onRequest: PagesFunction = async (context) => {
     const fallback = await fetch(`${ORIGIN}/index.html`, {
       headers: { 'Host': new URL(ORIGIN).host },
     });
-    return new Response(fallback.body, {
+    const res = new Response(fallback.body, {
       status: 200,
       headers: fallback.headers,
     });
+    return injectHomeButton(res);
   }
 
-  return new Response(response.body, {
+  const res = new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
     headers: response.headers,
   });
+  return injectHomeButton(res);
 };

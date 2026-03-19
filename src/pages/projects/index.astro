@@ -1,11 +1,194 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="refresh" content="0;url=/" />
-    <title>Redirecting...</title>
-  </head>
-  <body>
-    <p>Redirecting to <a href="/">dashboard</a>...</p>
-  </body>
-</html>
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { projectConfigs } from '../../config/projects.config';
+---
+
+<BaseLayout title="Projects" description="DaisyChain — project applications">
+  <div class="projects-page">
+    <div class="page-header">
+      <h1 class="page-title">Projects</h1>
+      <p class="page-subtitle">DaisyChain tools and applications</p>
+    </div>
+
+    <div class="project-grid">
+      {projectConfigs.map((p) => (
+        <div class="project-card">
+          <div class="project-top">
+            <span class="project-name">{p.name}</span>
+            <a
+              href={`/${p.slug}/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn-open"
+            >Open</a>
+          </div>
+
+          <p class="project-desc">{p.description}</p>
+
+          {p.details && (
+            <details class="project-details">
+              <summary class="details-summary">Details</summary>
+              <p class="details-body">{p.details}</p>
+            </details>
+          )}
+
+          <div class="project-meta">
+            <span class="meta-item">Cloudflare Pages</span>
+            {p.api && <span class="meta-item">Cloud Run API</span>}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .projects-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .page-header {
+    margin-bottom: 0.5rem;
+  }
+
+  .page-title {
+    font-family: var(--font-mono);
+    font-size: clamp(1.5rem, 3.5vw, 2rem);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    margin: 0 0 0.25rem;
+    line-height: 1.2;
+  }
+
+  .page-subtitle {
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+    margin: 0;
+  }
+
+  .project-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+
+  .project-card {
+    padding: 1.25rem 1.5rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    backdrop-filter: blur(12px);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: border-color 0.15s ease;
+  }
+
+  .project-card:hover {
+    border-color: hsl(260 30% 35%);
+  }
+
+  .project-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .project-name {
+    font-weight: 600;
+    font-size: 1rem;
+  }
+
+  .btn-open {
+    display: inline-flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 0.875rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    font-family: var(--font-sans);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: box-shadow var(--transition);
+  }
+
+  .btn-open:hover {
+    box-shadow: 0 0 16px var(--primary-glow);
+  }
+
+  .project-desc {
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .project-details {
+    border-top: 1px solid var(--border);
+    padding-top: 0.625rem;
+  }
+
+  .details-summary {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+  }
+
+  .details-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .details-summary::before {
+    content: '>';
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    margin-right: 0.25rem;
+    display: inline-block;
+    transition: transform 0.15s ease;
+  }
+
+  .project-details[open] .details-summary::before {
+    transform: rotate(90deg);
+  }
+
+  .details-body {
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    line-height: 1.6;
+    margin: 0.5rem 0 0;
+  }
+
+  .project-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    border-top: 1px solid var(--border);
+    padding-top: 0.625rem;
+  }
+
+  .meta-item {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    background: var(--muted);
+    padding: 0.2em 0.6em;
+    border-radius: var(--radius-sm);
+  }
+
+  @media (max-width: 600px) {
+    .project-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

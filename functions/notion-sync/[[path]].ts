@@ -1,5 +1,7 @@
 // CF Pages Function: proxy /notion-sync/* to Notion Sync frontend (dc-notion-sync.pages.dev)
 // Strips /notion-sync prefix and forwards remainder to origin
+import { injectHomeButton } from '../_lib/home-button';
+
 const ORIGIN = 'https://dc-notion-sync.pages.dev';
 
 export const onRequest: PagesFunction = async (context) => {
@@ -20,9 +22,10 @@ export const onRequest: PagesFunction = async (context) => {
     redirect: 'manual',
   });
 
-  return new Response(response.body, {
+  const res = new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
     headers: response.headers,
   });
+  return injectHomeButton(res);
 };

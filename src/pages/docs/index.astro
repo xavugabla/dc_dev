@@ -1,0 +1,103 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const docs = [
+  {
+    title: 'Architecture',
+    description: 'Platform architecture, request flow, and project onboarding guide',
+    href: '/docs/architecture/',
+  },
+  {
+    title: 'Brand Manual',
+    description: 'Logo system, color palette, typography, and UI component patterns',
+    href: '/docs/brand-manual/',
+  },
+  {
+    title: 'UI Look & Feel',
+    description: 'Tech stack, design tokens, layout structure, and component reference',
+    href: '/docs/look/',
+  },
+];
+---
+
+<BaseLayout title="Docs" description="DaisyChain — documentation">
+  <div class="docs-page">
+    <div class="page-header">
+      <h1 class="page-title">Documentation</h1>
+      <p class="page-subtitle">Architecture, brand guidelines & project reference</p>
+    </div>
+
+    <div class="docs-grid">
+      {docs.map((d) => (
+        <a href={d.href} class="doc-card">
+          <span class="doc-title">{d.title}</span>
+          <p class="doc-desc">{d.description}</p>
+        </a>
+      ))}
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .docs-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .page-header {
+    margin-bottom: 0.5rem;
+  }
+
+  .page-title {
+    font-family: var(--font-mono);
+    font-size: clamp(1.5rem, 3.5vw, 2rem);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    margin: 0 0 0.25rem;
+    line-height: 1.2;
+  }
+
+  .page-subtitle {
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+    margin: 0;
+  }
+
+  .docs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  .doc-card {
+    padding: 1.25rem 1.5rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    backdrop-filter: blur(12px);
+    text-decoration: none;
+    color: var(--foreground);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .doc-card:hover {
+    border-color: hsl(300 60% 40%);
+    box-shadow: 0 0 20px hsl(300 100% 60% / 0.15);
+  }
+
+  .doc-title {
+    font-weight: 600;
+    font-size: 1rem;
+  }
+
+  .doc-desc {
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    line-height: 1.5;
+    margin: 0;
+  }
+</style>

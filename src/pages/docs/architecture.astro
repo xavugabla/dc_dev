@@ -1,0 +1,33 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { Content } from '../../../docs/ARCHITECTURE.md';
+---
+
+<BaseLayout title="Architecture" description="DaisyChain — platform architecture">
+  <div class="doc-page">
+    <a href="/docs/" class="back-link">&larr; Docs</a>
+    <div class="prose">
+      <Content />
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .doc-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .back-link {
+    color: var(--muted-foreground);
+    text-decoration: none;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    transition: color var(--transition);
+  }
+
+  .back-link:hover {
+    color: var(--primary);
+  }
+</style>

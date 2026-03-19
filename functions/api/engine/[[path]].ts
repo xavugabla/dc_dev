@@ -1,5 +1,6 @@
 // CF Pages Function: proxy /api/engine/* to dc-engine-api Cloud Run
-// Strips /api/engine prefix — one_click_dc routes are /health, /api/graphs, etc.
+// Strips /api/engine prefix — e.g. /api/engine/health/detailed → /health/detailed,
+// /api/engine/api/graphs → /api/graphs. Engine routes are /health/*, /api/*.
 import { getIdentityToken } from '../../_lib/gcp-auth';
 
 interface Env {
@@ -10,7 +11,7 @@ const BACKEND = 'https://dc-engine-api-bz6s4nkt4q-uc.a.run.app';
 
 export const onRequest: PagesFunction<Env> = async (context) => {
   const url = new URL(context.request.url);
-  // /api/engine/health → /health, /api/engine/graphs → /api/graphs
+  // /api/engine/health/detailed → /health/detailed, /api/engine/api/graphs → /api/graphs
   const suffix = url.pathname.replace(/^\/api\/engine/, '') || '/';
   const backendUrl = `${BACKEND}${suffix}${url.search}`;
 

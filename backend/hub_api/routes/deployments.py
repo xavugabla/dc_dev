@@ -31,6 +31,9 @@ DEPLOY_CONFIG = {
         "cloudRun": {"projectId": "216566158850", "location": "us-central1", "serviceName": "dc-portal-api"},
         "cloudflarePages": {"projectName": "dc-portal"},
     },
+    "bd-tools": {
+        "cloudflarePages": {"projectName": "dc-bd-tools"},
+    },
 }
 
 

@@ -1,5 +1,7 @@
 // CF Pages Function: proxy /bd-tools/* to bd-tools.pages.dev
 // Strips /bd-tools prefix. Static site — no SPA fallback needed.
+import { injectHomeButton } from '../_lib/home-button';
+
 const ORIGIN = 'https://dc-bd-tools.pages.dev';
 
 export const onRequest: PagesFunction = async (context) => {
@@ -20,9 +22,10 @@ export const onRequest: PagesFunction = async (context) => {
     redirect: 'manual',
   });
 
-  return new Response(response.body, {
+  const res = new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
     headers: response.headers,
   });
+  return injectHomeButton(res);
 };

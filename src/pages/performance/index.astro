@@ -1,11 +1,1007 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="refresh" content="0;url=/" />
-    <title>Redirecting...</title>
-  </head>
-  <body>
-    <p>Redirecting to <a href="/">dashboard</a>...</p>
-  </body>
-</html>
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { projectConfigs } from '../../config/projects.config';
+
+const hubService = {
+  id: 'hub',
+  deployKey: 'hub',
+  name: 'Hub API',
+  description: 'Gateway, authentication & session management',
+  healthUrl: '/api/health',
+  frontendUrl: 'https://dc-hub.pages.dev',
+  frontendHost: 'dc-hub.pages.dev',
+  apiHost: 'dc-hub-api-bz6s4nkt4q-uc.a.run.app',
+  href: '',
+  details: '',
+};
+
+const projectServices = projectConfigs.map((p) => ({
+  id: p.id,
+  deployKey: p.id,
+  name: p.name,
+  description: p.description,
+  healthUrl: (p.endpoints?.[0]) || (p.api ? `${p.api.pathPrefix}/health` : ''),
+  frontendUrl: p.frontend.origin,
+  frontendHost: new URL(p.frontend.origin).hostname,
+  apiHost: p.api ? new URL(p.api.origin).hostname : undefined,
+  href: `/${p.slug}/`,
+  details: p.details || '',
+}));
+
+const services = [hubService, ...projectServices];
+---
+
+<BaseLayout title="Performance" description="DaisyChain — system health & performance metrics">
+  <div class="dashboard">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">System Status</h1>
+        <p class="page-subtitle">Auto-refreshes in <span id="countdown">30</span>s</p>
+      </div>
+      <button id="refresh-btn" class="btn btn-ghost" type="button">Refresh</button>
+    </div>
+
+    <div id="overall-banner" class="overall-banner">
+      <span class="banner-dot" id="banner-dot"></span>
+      <span id="banner-text">Checking systems...</span>
+    </div>
+
+    <div class="service-grid">
+      {services.map((s) => (
+        <div
+          class="service-card"
+          data-service={s.id}
+          data-deploy-key={s.deployKey}
+          data-health-url={s.healthUrl}
+          data-frontend-url={s.frontendUrl}
+        >
+          <div class="card-top">
+            <div class="card-title-row">
+              <span class="service-name">{s.name}</span>
+              <span class="status-badge checking" data-badge>Checking...</span>
+            </div>
+            {s.href && (
+              <a href={s.href} class="btn-open">Open</a>
+            )}
+          </div>
+
+          <p class="service-desc">{s.description}</p>
+
+          <div class="latency-row">
+            <span class="latency-label">Response</span>
+            <span class="latency-value" data-latency>—</span>
+          </div>
+          <div class="latency-bar-track">
+            <div class="latency-bar" data-latency-bar></div>
+          </div>
+
+          <div class="deps-section" data-deps>
+            <span class="deps-label">Dependencies</span>
+            <div class="deps-list" data-deps-list></div>
+          </div>
+
+          <div class="frontend-row">
+            <span class="fe-label">Frontend</span>
+            <span class="fe-dot" data-fe-dot title="Checking..."></span>
+            <span class="fe-status" data-fe-status>Checking...</span>
+          </div>
+
+          {s.details && (
+            <details class="about-section">
+              <summary class="about-summary">About</summary>
+              <p class="about-body">{s.details}</p>
+            </details>
+          )}
+
+          <details class="hosting-section">
+            <summary class="hosting-summary">Hosting</summary>
+            <div class="hosting-content">
+              <div class="hosting-row">
+                <span class="hosting-label">Frontend</span>
+                <span class="hosting-value">Cloudflare Pages @ {s.frontendHost}</span>
+              </div>
+              {s.apiHost && (
+                <div class="hosting-row">
+                  <span class="hosting-label">API</span>
+                  <span class="hosting-value">Cloud Run @ {s.apiHost}</span>
+                </div>
+              )}
+              <div class="deploy-times" data-deploy-times>
+                <span class="hosting-label">Last deployed</span>
+                <span class="deploy-placeholder">—</span>
+              </div>
+            </div>
+          </details>
+        </div>
+      ))}
+    </div>
+
+    <details class="metrics-panel">
+      <summary class="metrics-summary">Engine API Metrics</summary>
+      <div class="metrics-content" id="metrics-content">
+        <p class="metrics-placeholder" id="metrics-placeholder">Loading metrics...</p>
+        <div id="metrics-tables" style="display:none;">
+          <div class="metrics-section">
+            <h3 class="metrics-heading">Route Performance</h3>
+            <div class="table-wrap">
+              <table class="metrics-table" id="route-table">
+                <thead><tr><th>Route</th><th>Requests</th><th>Avg Latency</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="metrics-section">
+            <h3 class="metrics-heading">Slow Routes</h3>
+            <div class="table-wrap">
+              <table class="metrics-table" id="slow-table">
+                <thead><tr><th>Route</th><th>Max Latency</th><th>Avg Latency</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+  </div>
+</BaseLayout>
+
+<script>
+  const REFRESH_INTERVAL = 30;
+  let countdown = REFRESH_INTERVAL;
+  let timer: ReturnType<typeof setInterval>;
+
+  const countdownEl = document.getElementById('countdown')!;
+  const refreshBtn = document.getElementById('refresh-btn')!;
+  const bannerDot = document.getElementById('banner-dot')!;
+  const bannerText = document.getElementById('banner-text')!;
+  const banner = document.getElementById('overall-banner')!;
+
+  function startCountdown() {
+    clearInterval(timer);
+    countdown = REFRESH_INTERVAL;
+    countdownEl.textContent = String(countdown);
+    timer = setInterval(() => {
+      countdown--;
+      countdownEl.textContent = String(countdown);
+      if (countdown <= 0) {
+        checkAll();
+      }
+    }, 1000);
+  }
+
+  refreshBtn.addEventListener('click', () => checkAll());
+
+  function latencyColor(ms: number): string {
+    if (ms < 200) return '#22c55e';
+    if (ms <= 500) return 'hsl(45 100% 50%)';
+    return '#ef4444';
+  }
+
+  function statusClass(status: string): string {
+    if (status === 'healthy') return 'healthy';
+    if (status === 'degraded') return 'degraded';
+    return 'down';
+  }
+
+  function statusLabel(status: string): string {
+    if (status === 'healthy') return 'Healthy';
+    if (status === 'degraded') return 'Degraded';
+    return 'Down';
+  }
+
+  interface DepInfo {
+    status: string;
+    [key: string]: unknown;
+  }
+
+  interface HealthResult {
+    status: string;
+    responseTime: number;
+    dependencies?: Record<string, DepInfo | string>;
+    error?: string;
+    summary?: string;
+  }
+
+  function normalizeStatus(raw: string | undefined): string {
+    if (!raw) return 'down';
+    const s = raw.toLowerCase();
+    if (s === 'ok' || s === 'healthy') return 'healthy';
+    if (s === 'degraded' || s === 'warning') return 'degraded';
+    return 'down';
+  }
+
+  function boolToDep(val: boolean): string {
+    return val ? 'connected' : 'disconnected';
+  }
+
+  function extractHealthData(serviceId: string, data: Record<string, unknown>): { status: string; dependencies?: Record<string, DepInfo | string>; summary?: string } {
+    switch (serviceId) {
+      case 'hub':
+        return {
+          status: normalizeStatus(data.status as string),
+          dependencies: { database: boolToDep(data.database as boolean) },
+        };
+      case 'engine':
+        return {
+          status: normalizeStatus(data.status as string),
+          dependencies: { database: (data.database as string) || 'unknown' },
+        };
+      case 'notion-sync':
+        return {
+          status: normalizeStatus(data.status as string),
+          dependencies: {
+            notion: boolToDep(data.notion as boolean),
+            database: boolToDep(data.database as boolean),
+          },
+        };
+      case 'portal': {
+        const status = normalizeStatus((data.overall as string) || (data.status as string));
+        const deps: Record<string, DepInfo | string> = {};
+        if (Array.isArray(data.services)) {
+          for (const s of data.services) {
+            deps[s.service] = { status: s.status };
+          }
+        }
+        const summary = data.summary as { workingEndpoints?: number; totalEndpoints?: number } | undefined;
+        const summaryText = summary ? `${summary.workingEndpoints ?? '?'}/${summary.totalEndpoints ?? '?'} endpoints working` : undefined;
+        return { status, dependencies: Object.keys(deps).length > 0 ? deps : undefined, summary: summaryText };
+      }
+      default:
+        return { status: normalizeStatus(data.status as string) };
+    }
+  }
+
+  async function fetchHealth(url: string, serviceId: string): Promise<HealthResult> {
+    const start = performance.now();
+    try {
+      const resp = await fetch(url, { cache: 'no-store' });
+      const elapsed = Math.round(performance.now() - start);
+      if (resp.status === 401) {
+        return { status: 'degraded', responseTime: elapsed, error: 'Auth required' };
+      }
+      if (!resp.ok) {
+        return { status: 'down', responseTime: elapsed, error: `HTTP ${resp.status}` };
+      }
+      const data = await resp.json();
+      const extracted = extractHealthData(serviceId, data);
+      return {
+        status: extracted.status,
+        responseTime: elapsed,
+        dependencies: extracted.dependencies,
+        summary: extracted.summary,
+      };
+    } catch {
+      const elapsed = Math.round(performance.now() - start);
+      return { status: 'down', responseTime: elapsed, error: 'Unreachable' };
+    }
+  }
+
+  async function fetchFrontend(url: string): Promise<boolean> {
+    try {
+      const resp = await fetch(url, { method: 'HEAD', mode: 'no-cors', cache: 'no-store' });
+      return resp.ok || resp.type === 'opaque';
+    } catch {
+      return false;
+    }
+  }
+
+  function renderDeps(container: HTMLElement, deps: Record<string, DepInfo | string> | undefined) {
+    container.innerHTML = '';
+    if (!deps || Object.keys(deps).length === 0) {
+      container.closest('.deps-section')?.classList.add('hidden');
+      return;
+    }
+    container.closest('.deps-section')?.classList.remove('hidden');
+    for (const [name, val] of Object.entries(deps)) {
+      const depStatus = typeof val === 'string' ? val : (val as DepInfo).status || 'unknown';
+      const isOk = depStatus === 'connected' || depStatus === 'healthy' || depStatus === 'ok';
+      const dot = document.createElement('span');
+      dot.className = `dep-item`;
+      dot.innerHTML = `<span class="dep-dot ${isOk ? 'dep-ok' : 'dep-fail'}"></span>${name}`;
+      container.appendChild(dot);
+    }
+  }
+
+  function updateCard(card: HTMLElement, health: HealthResult, feUp: boolean) {
+    const badge = card.querySelector('[data-badge]') as HTMLElement;
+    const latencyVal = card.querySelector('[data-latency]') as HTMLElement;
+    const latencyBar = card.querySelector('[data-latency-bar]') as HTMLElement;
+    const depsList = card.querySelector('[data-deps-list]') as HTMLElement;
+    const feDot = card.querySelector('[data-fe-dot]') as HTMLElement;
+    const feStatus = card.querySelector('[data-fe-status]') as HTMLElement;
+
+    badge.className = `status-badge ${statusClass(health.status)}`;
+    badge.textContent = health.error || statusLabel(health.status);
+
+    let subtitle = card.querySelector('[data-summary]') as HTMLElement | null;
+    if (health.summary) {
+      if (!subtitle) {
+        subtitle = document.createElement('span');
+        subtitle.className = 'card-summary';
+        subtitle.setAttribute('data-summary', '');
+        card.querySelector('.card-top')!.after(subtitle);
+      }
+      subtitle.textContent = health.summary;
+    } else if (subtitle) {
+      subtitle.remove();
+    }
+
+    const ms = health.responseTime;
+    latencyVal.textContent = `${ms}ms`;
+    latencyVal.style.color = latencyColor(ms);
+    const pct = Math.min(ms / 1000, 1) * 100;
+    latencyBar.style.width = `${pct}%`;
+    latencyBar.style.background = latencyColor(ms);
+
+    renderDeps(depsList, health.dependencies);
+
+    feDot.className = `fe-dot ${feUp ? 'fe-up' : 'fe-down'}`;
+    feDot.title = feUp ? 'Reachable' : 'Unreachable';
+    feStatus.textContent = feUp ? 'Reachable' : 'Unreachable';
+  }
+
+  function updateBanner(results: HealthResult[]) {
+    const allHealthy = results.every((r) => r.status === 'healthy');
+    const anyDown = results.some((r) => r.status === 'down');
+
+    if (allHealthy) {
+      banner.className = 'overall-banner banner-green';
+      bannerDot.className = 'banner-dot dot-green';
+      bannerText.textContent = 'All systems operational';
+    } else if (anyDown) {
+      banner.className = 'overall-banner banner-red';
+      bannerDot.className = 'banner-dot dot-red';
+      bannerText.textContent = 'System outage detected';
+    } else {
+      banner.className = 'overall-banner banner-amber';
+      bannerDot.className = 'banner-dot dot-amber';
+      bannerText.textContent = 'Some services degraded';
+    }
+  }
+
+  function formatDeployTime(iso: string | null | undefined): string {
+    if (!iso) return '—';
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+    } catch {
+      return '—';
+    }
+  }
+
+  async function loadDeployments() {
+    try {
+      const resp = await fetch('/api/status/deployments', { cache: 'no-store' });
+      if (!resp.ok) return;
+      const data = await resp.json();
+
+      document.querySelectorAll<HTMLElement>('.service-card[data-deploy-key]').forEach((card) => {
+        const deployKey = card.dataset.deployKey!;
+        const container = card.querySelector('[data-deploy-times]') as HTMLElement;
+        if (!container) return;
+
+        const entry = data[deployKey];
+        if (!entry) return;
+
+        const parts: string[] = [];
+        if (entry.cloudRun?.lastDeploy) {
+          parts.push(`Cloud Run: ${formatDeployTime(entry.cloudRun.lastDeploy)}`);
+        }
+        if (entry.cloudflarePages?.lastDeploy) {
+          parts.push(`Pages: ${formatDeployTime(entry.cloudflarePages.lastDeploy)}`);
+        }
+        if (entry.cloudflareWorker?.lastDeploy) {
+          parts.push(`Worker: ${formatDeployTime(entry.cloudflareWorker.lastDeploy)}`);
+        }
+
+        const placeholder = container.querySelector('.deploy-placeholder');
+        if (placeholder) {
+          placeholder.textContent = parts.length > 0 ? parts.join(' · ') : '—';
+          (placeholder as HTMLElement).style.display = 'block';
+        }
+      });
+    } catch {
+      // Silently ignore deploy fetch errors
+    }
+  }
+
+  async function loadMetrics() {
+    const placeholder = document.getElementById('metrics-placeholder')!;
+    const tables = document.getElementById('metrics-tables')!;
+    const routeBody = document.querySelector('#route-table tbody')!;
+    const slowBody = document.querySelector('#slow-table tbody')!;
+
+    try {
+      const [routeResp, slowResp] = await Promise.allSettled([
+        fetch('/api/engine/api/health/metrics', { cache: 'no-store' }),
+        fetch('/api/engine/api/health/metrics/slow', { cache: 'no-store' }),
+      ]);
+
+      let hasData = false;
+
+      if (routeResp.status === 'fulfilled' && routeResp.value.ok) {
+        const data = await routeResp.value.json();
+        const routes = data.routes || data.metrics || [];
+        routeBody.innerHTML = '';
+        if (Array.isArray(routes) && routes.length > 0) {
+          hasData = true;
+          for (const r of routes) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${r.route || r.path || '—'}</td><td>${r.count ?? r.requests ?? '—'}</td><td>${r.avg_ms ?? r.avgLatency ?? '—'}ms</td>`;
+            routeBody.appendChild(tr);
+          }
+        }
+      }
+
+      if (slowResp.status === 'fulfilled' && slowResp.value.ok) {
+        const data = await slowResp.value.json();
+        const routes = data.slowest_routes || data.routes || data.slowRoutes || [];
+        slowBody.innerHTML = '';
+        if (Array.isArray(routes) && routes.length > 0) {
+          hasData = true;
+          for (const r of routes) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${r.route || r.path || '—'}</td><td>${r.max_ms ?? r.maxLatency ?? '—'}ms</td><td>${r.avg_ms ?? r.p95 ?? '—'}ms</td>`;
+            slowBody.appendChild(tr);
+          }
+        }
+      }
+
+      if (hasData) {
+        placeholder.style.display = 'none';
+        tables.style.display = 'block';
+      } else {
+        placeholder.textContent = 'Metrics not available';
+      }
+    } catch {
+      placeholder.textContent = 'Metrics not available';
+    }
+  }
+
+  async function checkAll() {
+    startCountdown();
+
+    const cards = document.querySelectorAll<HTMLElement>('.service-card');
+    const healthResults: HealthResult[] = [];
+
+    cards.forEach((card) => {
+      const badge = card.querySelector('[data-badge]') as HTMLElement;
+      badge.className = 'status-badge checking';
+      badge.textContent = 'Checking...';
+    });
+    banner.className = 'overall-banner';
+    bannerDot.className = 'banner-dot';
+    bannerText.textContent = 'Checking systems...';
+
+    const promises = Array.from(cards).map(async (card) => {
+      const healthUrl = card.dataset.healthUrl!;
+      const frontendUrl = card.dataset.frontendUrl!;
+
+      const serviceId = card.dataset.service!;
+      const [health, feUp] = await Promise.all([
+        fetchHealth(healthUrl, serviceId),
+        fetchFrontend(frontendUrl),
+      ]);
+
+      updateCard(card, health, feUp);
+      healthResults.push(health);
+    });
+
+    await Promise.allSettled(promises);
+    updateBanner(healthResults);
+    loadDeployments();
+    loadMetrics();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => checkAll());
+</script>
+
+<style>
+  .dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  /* -- Header ---------------------------------------- */
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .page-title {
+    font-family: var(--font-mono);
+    font-size: clamp(1.5rem, 3.5vw, 2rem);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    margin: 0 0 0.25rem;
+    line-height: 1.2;
+  }
+
+  .page-subtitle {
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+    margin: 0;
+  }
+
+  /* -- Overall banner -------------------------------- */
+  .overall-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1.25rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    backdrop-filter: blur(12px);
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .overall-banner.banner-green {
+    border-color: hsl(142 70% 30%);
+    box-shadow: 0 0 16px hsl(142 70% 45% / 0.15);
+  }
+
+  .overall-banner.banner-amber {
+    border-color: hsl(45 80% 35%);
+    box-shadow: 0 0 16px hsl(45 100% 50% / 0.15);
+  }
+
+  .overall-banner.banner-red {
+    border-color: hsl(0 70% 40%);
+    box-shadow: 0 0 16px hsl(0 80% 50% / 0.15);
+  }
+
+  .banner-dot {
+    flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.3s ease;
+  }
+
+  .banner-dot.dot-green { background: #22c55e; }
+  .banner-dot.dot-amber { background: hsl(45 100% 50%); }
+  .banner-dot.dot-red   { background: #ef4444; }
+
+  /* -- Service grid ---------------------------------- */
+  .service-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+
+  .service-card {
+    padding: 1.25rem 1.5rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    backdrop-filter: blur(12px);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: border-color 0.15s ease;
+  }
+
+  .service-card:hover {
+    border-color: hsl(260 30% 35%);
+  }
+
+  /* -- Card top: title row + open button ------------- */
+  .card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .service-name {
+    font-weight: 600;
+    font-size: 0.9375rem;
+  }
+
+  .btn-open {
+    display: inline-flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 0.875rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    font-family: var(--font-sans);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: box-shadow var(--transition);
+  }
+
+  .btn-open:hover {
+    box-shadow: 0 0 16px var(--primary-glow);
+  }
+
+  /* -- Description ----------------------------------- */
+  .service-desc {
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    line-height: 1.5;
+    margin: -0.25rem 0 0;
+  }
+
+  /* -- Status badge ---------------------------------- */
+  .status-badge {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.2em 0.6em;
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+  }
+
+  .status-badge.checking {
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+
+  .status-badge.healthy {
+    background: hsl(142 70% 20%);
+    color: #22c55e;
+  }
+
+  .status-badge.degraded {
+    background: hsl(45 60% 18%);
+    color: hsl(45 100% 50%);
+  }
+
+  .status-badge.down {
+    background: hsl(0 60% 18%);
+    color: #ef4444;
+  }
+
+  .card-summary {
+    display: block;
+    font-size: 0.6875rem;
+    color: var(--muted-foreground);
+    margin-top: -0.25rem;
+  }
+
+  /* -- Latency --------------------------------------- */
+  .latency-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.8125rem;
+  }
+
+  .latency-label {
+    color: var(--muted-foreground);
+  }
+
+  .latency-value {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-weight: 500;
+  }
+
+  .latency-bar-track {
+    height: 4px;
+    background: var(--muted);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .latency-bar {
+    height: 100%;
+    width: 0;
+    border-radius: 2px;
+    transition: width 0.4s ease, background 0.3s ease;
+  }
+
+  /* -- Dependencies ---------------------------------- */
+  .deps-section {
+    border-top: 1px solid var(--border);
+    padding-top: 0.625rem;
+  }
+
+  .deps-section.hidden {
+    display: none;
+  }
+
+  .deps-label {
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted-foreground);
+    margin-bottom: 0.375rem;
+  }
+
+  .deps-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+  }
+
+  .dep-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+  }
+
+  .dep-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .dep-ok   { background: #22c55e; }
+  .dep-fail { background: #ef4444; }
+
+  /* -- Frontend row ---------------------------------- */
+  .frontend-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    border-top: 1px solid var(--border);
+    padding-top: 0.625rem;
+  }
+
+  .fe-label {
+    font-weight: 500;
+  }
+
+  .fe-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+    transition: background 0.3s ease;
+  }
+
+  .fe-dot.fe-up   { background: #22c55e; }
+  .fe-dot.fe-down  { background: #ef4444; }
+
+  .fe-status {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+  }
+
+  /* -- About section --------------------------------- */
+  .about-section {
+    border-top: 1px solid var(--border);
+    padding-top: 0.625rem;
+  }
+
+  .about-summary {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+  }
+
+  .about-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .about-summary::before {
+    content: '>';
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    margin-right: 0.25rem;
+    display: inline-block;
+    transition: transform 0.15s ease;
+  }
+
+  .about-section[open] .about-summary::before {
+    transform: rotate(90deg);
+  }
+
+  .about-body {
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    line-height: 1.6;
+    margin: 0.5rem 0 0;
+  }
+
+  /* -- Hosting section ------------------------------- */
+  .hosting-section {
+    border-top: 1px solid var(--border);
+    padding-top: 0.625rem;
+  }
+
+  .hosting-summary {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+  }
+
+  .hosting-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .hosting-summary::before {
+    content: '>';
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    margin-right: 0.25rem;
+    display: inline-block;
+    transition: transform 0.15s ease;
+  }
+
+  .hosting-section[open] .hosting-summary::before {
+    transform: rotate(90deg);
+  }
+
+  .hosting-content {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .hosting-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    font-size: 0.75rem;
+  }
+
+  .hosting-label {
+    font-weight: 500;
+    color: var(--muted-foreground);
+  }
+
+  .hosting-value {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--foreground);
+    word-break: break-all;
+  }
+
+  .deploy-times {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    font-size: 0.75rem;
+    margin-top: 0.375rem;
+  }
+
+  .deploy-times .hosting-label {
+    font-size: 0.6875rem;
+  }
+
+  .deploy-placeholder {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--foreground);
+  }
+
+  /* -- Metrics panel --------------------------------- */
+  .metrics-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    backdrop-filter: blur(12px);
+  }
+
+  .metrics-summary {
+    padding: 1rem 1.25rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+
+  .metrics-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .metrics-summary::before {
+    content: '>';
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    transition: transform 0.15s ease;
+    display: inline-block;
+  }
+
+  .metrics-panel[open] .metrics-summary::before {
+    transform: rotate(90deg);
+  }
+
+  .metrics-content {
+    padding: 0 1.25rem 1.25rem;
+  }
+
+  .metrics-placeholder {
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    margin: 0;
+  }
+
+  .metrics-section {
+    margin-top: 1rem;
+  }
+
+  .metrics-section:first-child {
+    margin-top: 0;
+  }
+
+  .metrics-heading {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted-foreground);
+    margin: 0 0 0.5rem;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  .metrics-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+  }
+
+  .metrics-table th {
+    text-align: left;
+    color: var(--muted-foreground);
+    font-weight: 500;
+    padding: 0.375rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  .metrics-table td {
+    padding: 0.375rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--foreground);
+    white-space: nowrap;
+  }
+
+  /* -- Responsive ------------------------------------ */
+  @media (max-width: 600px) {
+    .service-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

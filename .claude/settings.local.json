@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /Users/fxbc/code/dc_dev/src -type f -name \"*.astro\" | xargs ls -la)",
+      "Bash(find /Users/fxbc/code/dc_dev -name \"*.woff2\" -o -name \"*.woff\" -o -name \"*.ttf\" -o -name \"*.otf\" 2>/dev/null | head -20)",
+      "Bash(grep -r \"className\\\\|class=\" /Users/fxbc/code/dc_dev/src/pages/*.astro /Users/fxbc/code/dc_dev/src/layouts/*.astro 2>/dev/null | head -30)",
+      "Bash(npm run:*)",
+      "Bash(grep -o 'hub-card' /Users/fxbc/code/dc_dev/dist/index.html | wc -l && echo \"hub-card occurrences in home \\(expect ~12\\)\" && grep -c 'service-card' /Users/fxbc/code/dc_dev/dist/performance/index.html && echo \"service-card occurrences in performance \\(expect >0\\)\" && grep -c 'target=\"_blank\"' /Users/fxbc/code/dc_dev/dist/projects/index.html && echo \"target=_blank in projects \\(expect 4\\)\" && grep -c 'prose' /Users/fxbc/code/dc_dev/dist/docs/architecture/index.html && echo \"prose class in docs/architecture\")",
+      "Bash(find /Users/fxbc/code/dc_dev/src -type f \\\\\\( -name \"*.astro\" -o -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.css\" \\\\\\) 2>/dev/null | sort)"
+    ]
+  }
+}

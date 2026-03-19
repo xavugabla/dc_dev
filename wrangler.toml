@@ -1,6 +1,7 @@
 # Cloudflare Pages configuration
-# Auth and API logic handled by Cloud Run backend — no KV or env vars needed.
-# The single functions/api/[[path]].ts proxy forwards /api/* to Cloud Run.
+# CF Pages Functions in functions/ handle frontend proxies (/{slug}/*) and
+# API proxies (api/[[path]].ts for Hub, api/{slug}/[[path]].ts per project).
+# Auth session check in _middleware.ts; OIDC token generation in _lib/gcp-auth.ts.
 
 name = "dc-hub"
 pages_build_output_dir = "dist"

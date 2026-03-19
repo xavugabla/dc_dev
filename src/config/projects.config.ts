@@ -5,9 +5,9 @@
  * HOW TO ADD A NEW PROJECT
  * ────────────────────────
  * 1. Add an entry to the `projectConfigs` array.
- * 2. Create functions/{slug}/[[path]].ts (frontend proxy).
+ * 2. Create functions/{slug}/[[path]].ts (frontend proxy) — import injectHomeButton.
  * 3. If the project has an API: functions/api/{slug}/[[path]].ts.
- * 4. Update Worker index.ts to route /{slug}/* and /api/{slug}/* when used.
+ * 4. Add deploy config entry in backend/hub_api/routes/deployments.py DEPLOY_CONFIG.
  */
 export interface DeployConfig {
   cloudRun?: { projectId: string; location: string; serviceName: string };
