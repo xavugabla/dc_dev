@@ -13,12 +13,13 @@ const apiDir = join(root, 'functions', 'api');
 
 // Project config slugs and API path prefixes (from projects.config.ts)
 const PROJECTS = [
-  { slug: 'modeling', apiPathPrefix: '/api/modeling' },
+  { slug: 'engine', apiPathPrefix: '/api/engine' },
   { slug: 'notion-sync', apiPathPrefix: '/api/notion-sync' },
-  { slug: 'partner-portal', apiPathPrefix: '/api/partner' }, // proxied by Hub, no functions/api/partner-portal
+  { slug: 'portal', apiPathPrefix: '/api/portal' }, // proxied by Hub, no functions/api/portal
+  { slug: 'bd-tools' }, // static, no API
 ];
 
-const HUB_PROXIED_API_PREFIXES = ['/api/partner'];
+const HUB_PROXIED_API_PREFIXES = ['/api/portal'];
 
 function hasPathCatchAll(dir) {
   try {
