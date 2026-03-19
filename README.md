@@ -1,6 +1,6 @@
 # dc-hub
 
-Gatekeeper platform—hosting hub for auth, performance metrics, and project access. Frontend in `src/`, backend in `backend/` (Cloud Run). Hosted on [Cloudflare Pages](https://pages.cloudflare.com) with dc-hub-gateway Worker for auth and routing. See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
+Gatekeeper platform—hosting hub for auth, performance metrics, and project access. Frontend in `src/`, backend in `backend/` (Cloud Run). Hosted on [Cloudflare Pages](https://pages.cloudflare.com) with Pages Functions for routing. See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 ## Structure
 
@@ -48,9 +48,9 @@ npm run dev
 npm run test   # runs config check + build
 ```
 
-- **Config check** (`npm run check`): Ensures `functions/` matches `src/config/projects.config.ts` (frontend proxy per slug, API proxy for `/api/modeling` and `/api/notion-sync`; `/api/partner` is intentionally proxied by the Hub backend).
+- **Config check** (`npm run check`): Ensures `functions/` matches `src/config/projects.config.ts` (frontend proxy per slug, API proxy for `/api/engine` and `/api/notion-sync`; `/api/portal` is proxied by the Hub backend).
 - **Build**: Astro static build. Backend is deployed separately (Cloud Run).
 
 ## Deploy
 
-See **[DEPLOY.md](./DEPLOY.md)** for full setup: hub → Pages, Worker → auth + routing, projects under `/modeling/`, `/notion-sync/`, `/partner-portal/`.
+See **[DEPLOY.md](./DEPLOY.md)** for full setup: hub → Pages, projects under `/engine/`, `/notion-sync/`, `/portal/`, `/bd-tools/`.

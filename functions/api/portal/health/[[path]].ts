@@ -1,17 +1,18 @@
-// CF Pages Function: proxy /api/modeling/* to one-click-dc-api Cloud Run
-// Strips /api/modeling prefix — one_click_dc routes are /health, /api/graphs, etc.
-import { getIdentityToken } from '../../_lib/gcp-auth';
+// CF Pages Function: proxy /api/portal/health/* directly to portal backend
+// Health routes on the portal backend are at /health/* (no /api/ prefix),
+// so this bypasses the normal /api/portal → /api/* rewriting.
+import { getIdentityToken } from '../../../_lib/gcp-auth';
 
 interface Env {
   GCP_SERVICE_ACCOUNT_KEY: string;
 }
 
-const BACKEND = 'https://one-click-dc-api-216566158850.us-central1.run.app';
+const BACKEND = 'https://dc-portal-api-bz6s4nkt4q-uc.a.run.app';
 
 export const onRequest: PagesFunction<Env> = async (context) => {
   const url = new URL(context.request.url);
-  // /api/modeling/health → /health, /api/modeling/graphs → /api/graphs
-  const suffix = url.pathname.replace(/^\/api\/modeling/, '') || '/';
+  // /api/portal/health/comprehensive → /health/comprehensive
+  const suffix = url.pathname.replace(/^\/api\/portal/, '') || '/';
   const backendUrl = `${BACKEND}${suffix}${url.search}`;
 
   const headers = new Headers(context.request.headers);

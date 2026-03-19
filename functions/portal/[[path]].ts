@@ -1,12 +1,12 @@
-// CF Pages Function: proxy /partner-portal/* to partner portal SPA frontend
-// Strips /partner-portal prefix. Includes SPA fallback for client-side routing.
-const ORIGIN = 'https://dc-partner-portal.pages.dev';
+// CF Pages Function: proxy /portal/* to partner portal SPA frontend
+// Strips /portal prefix. Includes SPA fallback for client-side routing.
+const ORIGIN = 'https://dc-portal.pages.dev';
 
 const HAS_EXTENSION = /\.[a-zA-Z0-9]+$/;
 
 export const onRequest: PagesFunction = async (context) => {
   const url = new URL(context.request.url);
-  const path = url.pathname.replace(/^\/partner-portal/, '') || '/';
+  const path = url.pathname.replace(/^\/portal/, '') || '/';
   const targetUrl = `${ORIGIN}${path}${url.search}`;
 
   const headers = new Headers(context.request.headers);

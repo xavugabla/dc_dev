@@ -16,21 +16,20 @@ router = APIRouter()
 # accountId filled from CLOUDFLARE_ACCOUNT_ID when fetching
 DEPLOY_CONFIG = {
     "hub": {
-        "cloudRun": {"projectId": "216566158850", "location": "us-central1", "serviceName": "dc-dev-hub-api"},
+        "cloudRun": {"projectId": "216566158850", "location": "us-central1", "serviceName": "dc-hub-api"},
         "cloudflarePages": {"projectName": "dc-hub"},
-        "cloudflareWorker": {"scriptName": "dc-hub-gateway"},
     },
-    "modeling": {
-        "cloudRun": {"projectId": "216566158850", "location": "us-central1", "serviceName": "one-click-dc-api"},
-        "cloudflarePages": {"projectName": "dc-modeling"},
+    "engine": {
+        "cloudRun": {"projectId": "216566158850", "location": "us-central1", "serviceName": "dc-engine-api"},
+        "cloudflarePages": {"projectName": "dc-engine"},
     },
     "notion-sync": {
-        "cloudRun": {"projectId": "216566158850", "location": "us-central1", "serviceName": "dc-async-api"},
-        "cloudflarePages": {"projectName": "notion-sync-7ja"},
+        "cloudRun": {"projectId": "216566158850", "location": "us-central1", "serviceName": "dc-notion-sync-api"},
+        "cloudflarePages": {"projectName": "dc-notion-sync"},
     },
-    "partner-portal": {
-        "cloudRun": {"projectId": "216566158850", "location": "us-central1", "serviceName": "partner-portal-api"},
-        "cloudflarePages": {"projectName": "dc-partner-portal"},
+    "portal": {
+        "cloudRun": {"projectId": "216566158850", "location": "us-central1", "serviceName": "dc-portal-api"},
+        "cloudflarePages": {"projectName": "dc-portal"},
     },
 }
 

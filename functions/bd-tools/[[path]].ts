@@ -1,6 +1,6 @@
 // CF Pages Function: proxy /bd-tools/* to bd-tools.pages.dev
 // Strips /bd-tools prefix. Static site — no SPA fallback needed.
-const ORIGIN = 'https://bd-tools-5qa.pages.dev';
+const ORIGIN = 'https://dc-bd-tools.pages.dev';
 
 export const onRequest: PagesFunction = async (context) => {
   const url = new URL(context.request.url);

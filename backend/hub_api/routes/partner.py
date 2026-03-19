@@ -1,4 +1,4 @@
-"""Partner proxy: forwards /api/partner/* to partner-portal-api Cloud Run.
+"""Portal proxy: forwards /api/portal/* to dc-portal-api Cloud Run.
 Checks session auth and injects X-DC-User-Email / X-DC-Admin headers."""
 
 import uuid as uuid_mod
@@ -14,7 +14,7 @@ from hub_api.db.connection import get_db
 from hub_api.db.models import AuthSession
 from hub_api.gcp_auth import get_id_token
 
-router = APIRouter(prefix="/api/partner", tags=["partner"])
+router = APIRouter(prefix="/api/portal", tags=["portal"])
 
 SESSION_COOKIE = "dc_session"
 
@@ -55,7 +55,7 @@ async def proxy_partner(path: str, request: Request, db: Session = Depends(get_d
     if not email:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    # Rewrite /api/partner/* → /api/*
+    # Rewrite /api/portal/* → /api/*
     target = f"{settings.partner_api_url}/api/{path}"
     if request.url.query:
         target += f"?{request.url.query}"

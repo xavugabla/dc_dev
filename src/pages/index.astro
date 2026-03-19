@@ -10,7 +10,7 @@ const hubService = {
   healthUrl: '/api/health',
   frontendUrl: 'https://dc-hub.pages.dev',
   frontendHost: 'dc-hub.pages.dev',
-  apiHost: 'dc-dev-hub-api-216566158850.us-central1.run.app',
+  apiHost: 'dc-hub-api-bz6s4nkt4q-uc.a.run.app',
   href: '',
   details: '',
 };
@@ -221,7 +221,7 @@ const services = [hubService, ...projectServices];
           status: normalizeStatus(data.status as string),
           dependencies: { database: boolToDep(data.database as boolean) },
         };
-      case 'modeling':
+      case 'engine':
         return {
           status: normalizeStatus(data.status as string),
           dependencies: { database: (data.database as string) || 'unknown' },
@@ -234,7 +234,7 @@ const services = [hubService, ...projectServices];
             database: boolToDep(data.database as boolean),
           },
         };
-      case 'partner-portal': {
+      case 'portal': {
         const status = normalizeStatus((data.overall as string) || (data.status as string));
         const deps: Record<string, DepInfo | string> = {};
         if (Array.isArray(data.services)) {
@@ -413,8 +413,8 @@ const services = [hubService, ...projectServices];
 
     try {
       const [routeResp, slowResp] = await Promise.allSettled([
-        fetch('/api/modeling/api/health/metrics', { cache: 'no-store' }),
-        fetch('/api/modeling/api/health/metrics/slow', { cache: 'no-store' }),
+        fetch('/api/engine/api/health/metrics', { cache: 'no-store' }),
+        fetch('/api/engine/api/health/metrics/slow', { cache: 'no-store' }),
       ]);
 
       let hasData = false;

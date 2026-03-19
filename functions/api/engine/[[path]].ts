@@ -1,18 +1,17 @@
-// CF Pages Function: proxy /api/partner/health/* directly to partner backend
-// Health routes on the partner backend are at /health/* (no /api/ prefix),
-// so this bypasses the normal /api/partner → /api/* rewriting.
-import { getIdentityToken } from '../../../_lib/gcp-auth';
+// CF Pages Function: proxy /api/engine/* to dc-engine-api Cloud Run
+// Strips /api/engine prefix — one_click_dc routes are /health, /api/graphs, etc.
+import { getIdentityToken } from '../../_lib/gcp-auth';
 
 interface Env {
   GCP_SERVICE_ACCOUNT_KEY: string;
 }
 
-const BACKEND = 'https://partner-portal-api-216566158850.us-central1.run.app';
+const BACKEND = 'https://dc-engine-api-bz6s4nkt4q-uc.a.run.app';
 
 export const onRequest: PagesFunction<Env> = async (context) => {
   const url = new URL(context.request.url);
-  // /api/partner/health/comprehensive → /health/comprehensive
-  const suffix = url.pathname.replace(/^\/api\/partner/, '') || '/';
+  // /api/engine/health → /health, /api/engine/graphs → /api/graphs
+  const suffix = url.pathname.replace(/^\/api\/engine/, '') || '/';
   const backendUrl = `${BACKEND}${suffix}${url.search}`;
 
   const headers = new Headers(context.request.headers);

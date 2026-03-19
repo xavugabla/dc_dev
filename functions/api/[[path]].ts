@@ -6,7 +6,7 @@ interface Env {
   GCP_SERVICE_ACCOUNT_KEY: string;
 }
 
-const BACKEND = 'https://dc-dev-hub-api-216566158850.us-central1.run.app';
+const BACKEND = 'https://dc-hub-api-bz6s4nkt4q-uc.a.run.app';
 
 export const onRequest: PagesFunction<Env> = async (context) => {
   const url = new URL(context.request.url);

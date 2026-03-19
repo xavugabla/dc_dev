@@ -1,6 +1,6 @@
-// CF Pages Function: proxy /notion-sync/* to Notion Sync frontend (notion-sync-7ja.pages.dev)
+// CF Pages Function: proxy /notion-sync/* to Notion Sync frontend (dc-notion-sync.pages.dev)
 // Strips /notion-sync prefix and forwards remainder to origin
-const ORIGIN = 'https://notion-sync-7ja.pages.dev';
+const ORIGIN = 'https://dc-notion-sync.pages.dev';
 
 export const onRequest: PagesFunction = async (context) => {
   const url = new URL(context.request.url);

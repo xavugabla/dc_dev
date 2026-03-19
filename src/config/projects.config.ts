@@ -29,28 +29,27 @@ export interface ProjectConfig {
   deploy?: DeployConfig;
 }
 
-/** Platform (Hub) deploy metadata — Hub API, dc-hub Pages, dc-hub-gateway Worker */
-export const platformDeployConfig: DeployConfig & { cloudflareWorker?: { accountId: string; scriptName: string } } = {
-  cloudRun: { projectId: '216566158850', location: 'us-central1', serviceName: 'dc-dev-hub-api' },
+/** Platform (Hub) deploy metadata — Hub API + dc-hub Pages */
+export const platformDeployConfig: DeployConfig = {
+  cloudRun: { projectId: '216566158850', location: 'us-central1', serviceName: 'dc-hub-api' },
   cloudflarePages: { accountId: '', projectName: 'dc-hub' },
-  cloudflareWorker: { accountId: '', scriptName: 'dc-hub-gateway' },
 };
 
 export const projectConfigs: ProjectConfig[] = [
   {
-    id: 'modeling',
-    slug: 'modeling',
-    name: 'DaisyChain',
+    id: 'engine',
+    slug: 'engine',
+    name: 'Engine',
     description: 'Energy analysis and utility cost modeling',
-    frontend: { origin: 'https://dc-modeling.pages.dev' },
-    api: { origin: 'https://one-click-dc-api-216566158850.us-central1.run.app', pathPrefix: '/api/modeling' },
-    endpoints: ['/api/modeling/health/detailed'],
+    frontend: { origin: 'https://dc-engine.pages.dev' },
+    api: { origin: 'https://dc-engine-api-bz6s4nkt4q-uc.a.run.app', pathPrefix: '/api/engine' },
+    endpoints: ['/api/engine/health/detailed'],
     deploy: {
-      cloudRun: { projectId: '216566158850', location: 'us-central1', serviceName: 'one-click-dc-api' },
-      cloudflarePages: { accountId: '', projectName: 'dc-modeling' },
+      cloudRun: { projectId: '216566158850', location: 'us-central1', serviceName: 'dc-engine-api' },
+      cloudflarePages: { accountId: '', projectName: 'dc-engine' },
     },
     details:
-      'Full-stack energy platform (React + Hono) for building-level utility analysis. ' +
+      'Full-stack energy platform (React + FastAPI) for building-level utility analysis. ' +
       'Includes calculation graph engine, proposal generation, rate sensitivity modeling, ' +
       'and submeter analytics. Deployed on Cloudflare Pages with a Neon Postgres backend.',
   },
@@ -59,12 +58,12 @@ export const projectConfigs: ProjectConfig[] = [
     slug: 'notion-sync',
     name: 'Notion Sync',
     description: 'Notion sync and pipeline analytics',
-    frontend: { origin: 'https://notion-sync-7ja.pages.dev' },
-    api: { origin: 'https://dc-async-api-216566158850.us-central1.run.app', pathPrefix: '/api/notion-sync' },
+    frontend: { origin: 'https://dc-notion-sync.pages.dev' },
+    api: { origin: 'https://dc-notion-sync-api-bz6s4nkt4q-uc.a.run.app', pathPrefix: '/api/notion-sync' },
     endpoints: ['/api/notion-sync/health'],
     deploy: {
-      cloudRun: { projectId: '216566158850', location: 'us-central1', serviceName: 'dc-async-api' },
-      cloudflarePages: { accountId: '', projectName: 'notion-sync-7ja' },
+      cloudRun: { projectId: '216566158850', location: 'us-central1', serviceName: 'dc-notion-sync-api' },
+      cloudflarePages: { accountId: '', projectName: 'dc-notion-sync' },
     },
     details:
       'Lightweight analytics layer on top of Notion databases. ' +
@@ -72,16 +71,16 @@ export const projectConfigs: ProjectConfig[] = [
       'for revenue forecasting and stage-conversion metrics.',
   },
   {
-    id: 'partner-portal',
-    slug: 'partner-portal',
-    name: 'Partner Portal',
+    id: 'portal',
+    slug: 'portal',
+    name: 'Portal',
     description: 'Vendor and channel partner management',
-    frontend: { origin: 'https://dc-partner-portal.pages.dev' },
-    api: { origin: 'https://partner-portal-api-216566158850.us-central1.run.app', pathPrefix: '/api/partner' },
-    endpoints: ['/api/partner/health/comprehensive'],
+    frontend: { origin: 'https://dc-portal.pages.dev' },
+    api: { origin: 'https://dc-portal-api-bz6s4nkt4q-uc.a.run.app', pathPrefix: '/api/portal' },
+    endpoints: ['/api/portal/health/comprehensive'],
     deploy: {
-      cloudRun: { projectId: '216566158850', location: 'us-central1', serviceName: 'partner-portal-api' },
-      cloudflarePages: { accountId: '', projectName: 'dc-partner-portal' },
+      cloudRun: { projectId: '216566158850', location: 'us-central1', serviceName: 'dc-portal-api' },
+      cloudflarePages: { accountId: '', projectName: 'dc-portal' },
     },
     details:
       'Partner management platform for vendor onboarding, deal pipeline tracking, ' +
@@ -92,9 +91,9 @@ export const projectConfigs: ProjectConfig[] = [
     slug: 'bd-tools',
     name: 'BD Tools',
     description: 'Internal business development tools',
-    frontend: { origin: 'https://bd-tools-5qa.pages.dev' },
+    frontend: { origin: 'https://dc-bd-tools.pages.dev' },
     deploy: {
-      cloudflarePages: { accountId: '', projectName: 'bd-tools' },
+      cloudflarePages: { accountId: '', projectName: 'dc-bd-tools' },
     },
     details: 'Static HTML tools for the business development team. Served behind hub auth.',
   },

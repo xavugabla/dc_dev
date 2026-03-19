@@ -1,12 +1,12 @@
-// CF Pages Function: proxy /modeling/* to DaisyChain SPA (dc-modeling.pages.dev)
-// Strips /modeling prefix. Includes SPA fallback: if upstream 404 + no file extension, serve index.html
-const ORIGIN = 'https://dc-modeling.pages.dev';
+// CF Pages Function: proxy /engine/* to DaisyChain Engine SPA (dc-engine.pages.dev)
+// Strips /engine prefix. Includes SPA fallback: if upstream 404 + no file extension, serve index.html
+const ORIGIN = 'https://dc-engine.pages.dev';
 
 const HAS_EXTENSION = /\.[a-zA-Z0-9]+$/;
 
 export const onRequest: PagesFunction = async (context) => {
   const url = new URL(context.request.url);
-  const path = url.pathname.replace(/^\/modeling/, '') || '/';
+  const path = url.pathname.replace(/^\/engine/, '') || '/';
   const targetUrl = `${ORIGIN}${path}${url.search}`;
 
   const headers = new Headers(context.request.headers);

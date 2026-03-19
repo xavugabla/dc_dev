@@ -1,4 +1,4 @@
-// CF Pages Function: proxy /api/notion-sync/* to dc-async-api Cloud Run
+// CF Pages Function: proxy /api/notion-sync/* to dc-notion-sync-api Cloud Run
 // Strips /api/notion-sync prefix — dc_async routes are /health, /scripts/*, etc.
 import { getIdentityToken } from '../../_lib/gcp-auth';
 
@@ -6,7 +6,7 @@ interface Env {
   GCP_SERVICE_ACCOUNT_KEY: string;
 }
 
-const BACKEND = 'https://dc-async-api-216566158850.us-central1.run.app';
+const BACKEND = 'https://dc-notion-sync-api-bz6s4nkt4q-uc.a.run.app';
 
 export const onRequest: PagesFunction<Env> = async (context) => {
   const url = new URL(context.request.url);
