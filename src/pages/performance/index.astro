@@ -2,6 +2,12 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { projectConfigs } from '../../config/projects.config';
 
+const hubEndpointRegistry = [
+  { method: 'GET', path: '/api/health', label: 'Health + DB' },
+  { method: 'GET', path: '/api/auth/me', label: 'Auth (current user)' },
+  { method: 'GET', path: '/api/status/deployments', label: 'Deploy timestamps' },
+];
+
 const hubService = {
   id: 'hub',
   deployKey: 'hub',
@@ -13,6 +19,7 @@ const hubService = {
   apiHost: 'dc-hub-api-bz6s4nkt4q-uc.a.run.app',
   href: '',
   details: '',
+  endpointRegistry: hubEndpointRegistry,
 };
 
 const projectServices = projectConfigs.map((p) => ({
@@ -26,6 +33,7 @@ const projectServices = projectConfigs.map((p) => ({
   apiHost: p.api ? new URL(p.api.origin).hostname : undefined,
   href: `/${p.slug}/`,
   details: p.details || '',
+  endpointRegistry: p.endpointRegistry || [],
 }));
 
 const services = [hubService, ...projectServices];
@@ -112,6 +120,29 @@ const services = [hubService, ...projectServices];
               </div>
             </div>
           </details>
+
+          {s.endpointRegistry && s.endpointRegistry.length > 0 && (
+            <details class="endpoints-section" data-endpoints-section>
+              <summary class="endpoints-summary">
+                Endpoints <span class="endpoint-count">({s.endpointRegistry.length})</span>
+              </summary>
+              <div class="endpoints-content">
+                <div class="endpoints-toolbar">
+                  <button class="btn-test-all" data-test-all type="button">Test All</button>
+                </div>
+                <div class="endpoints-list">
+                  {s.endpointRegistry.map((ep: { method: string; path: string; label: string }) => (
+                    <div class="endpoint-row" data-ep-path={ep.path} data-ep-method={ep.method}>
+                      <span class="ep-method">{ep.method}</span>
+                      <span class="ep-label">{ep.label}</span>
+                      <span class="ep-status" data-ep-status>—</span>
+                      <span class="ep-latency" data-ep-latency></span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </details>
+          )}
         </div>
       ))}
     </div>
@@ -492,6 +523,57 @@ const services = [hubService, ...projectServices];
     loadDeployments();
     loadMetrics();
   }
+
+  /* ── On-demand endpoint testing ───────────────────── */
+  async function testEndpoint(row: HTMLElement): Promise<void> {
+    const path = row.dataset.epPath!;
+    const statusEl = row.querySelector('[data-ep-status]') as HTMLElement;
+    const latencyEl = row.querySelector('[data-ep-latency]') as HTMLElement;
+
+    statusEl.textContent = '...';
+    statusEl.className = 'ep-status ep-checking';
+    latencyEl.textContent = '';
+
+    const start = performance.now();
+    try {
+      const resp = await fetch(path, { cache: 'no-store' });
+      const ms = Math.round(performance.now() - start);
+      statusEl.textContent = String(resp.status);
+      statusEl.className = `ep-status ${resp.ok ? 'ep-ok' : (resp.status < 500 ? 'ep-warn' : 'ep-fail')}`;
+      latencyEl.textContent = `${ms}ms`;
+      latencyEl.style.color = latencyColor(ms);
+    } catch {
+      const ms = Math.round(performance.now() - start);
+      statusEl.textContent = 'ERR';
+      statusEl.className = 'ep-status ep-fail';
+      latencyEl.textContent = `${ms}ms`;
+      latencyEl.style.color = '#ef4444';
+    }
+  }
+
+  async function testAllEndpoints(section: HTMLElement): Promise<void> {
+    const rows = section.querySelectorAll<HTMLElement>('.endpoint-row');
+    await Promise.allSettled(Array.from(rows).map(testEndpoint));
+  }
+
+  // Wire up "Test All" buttons
+  document.querySelectorAll<HTMLElement>('[data-test-all]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const section = btn.closest('[data-endpoints-section]') as HTMLElement;
+      if (section) testAllEndpoints(section);
+    });
+  });
+
+  // Auto-test when section is first opened
+  document.querySelectorAll<HTMLElement>('[data-endpoints-section]').forEach((section) => {
+    let tested = false;
+    section.addEventListener('toggle', () => {
+      if ((section as HTMLDetailsElement).open && !tested) {
+        tested = true;
+        testAllEndpoints(section);
+      }
+    });
+  });
 
   document.addEventListener('DOMContentLoaded', () => checkAll());
 </script>
@@ -904,6 +986,124 @@ const services = [hubService, ...projectServices];
     font-family: var(--font-mono);
     font-size: 0.6875rem;
     color: var(--foreground);
+  }
+
+  /* -- Endpoints section ------------------------------ */
+  .endpoints-section {
+    border-top: 1px solid var(--border);
+    padding-top: 0.625rem;
+  }
+
+  .endpoints-summary {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+
+  .endpoints-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .endpoints-summary::before {
+    content: '>';
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    display: inline-block;
+    transition: transform 0.15s ease;
+  }
+
+  .endpoints-section[open] .endpoints-summary::before {
+    transform: rotate(90deg);
+  }
+
+  .endpoint-count {
+    font-weight: 400;
+    color: var(--muted-foreground);
+  }
+
+  .endpoints-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin: 0.5rem 0 0.375rem;
+  }
+
+  .btn-test-all {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    font-family: var(--font-mono);
+    padding: 0.25em 0.75em;
+    border-radius: var(--radius-sm);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border: none;
+    cursor: pointer;
+    transition: box-shadow var(--transition);
+  }
+
+  .btn-test-all:hover {
+    box-shadow: 0 0 12px var(--primary-glow);
+  }
+
+  .endpoints-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .endpoint-row {
+    display: grid;
+    grid-template-columns: 2.5rem 1fr auto auto;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.5rem;
+    border-radius: var(--radius-sm);
+    background: hsl(0 0% 100% / 0.02);
+    font-size: 0.75rem;
+  }
+
+  .endpoint-row:hover {
+    background: hsl(0 0% 100% / 0.04);
+  }
+
+  .ep-method {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    font-weight: 600;
+    color: var(--primary);
+    text-transform: uppercase;
+  }
+
+  .ep-label {
+    color: var(--foreground);
+    font-size: 0.75rem;
+  }
+
+  .ep-status {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    min-width: 2rem;
+    text-align: right;
+  }
+
+  .ep-status.ep-ok { color: #22c55e; }
+  .ep-status.ep-warn { color: hsl(45 100% 50%); }
+  .ep-status.ep-fail { color: #ef4444; }
+  .ep-status.ep-checking { color: var(--muted-foreground); }
+
+  .ep-latency {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    min-width: 3rem;
+    text-align: right;
   }
 
   /* -- Metrics panel --------------------------------- */
