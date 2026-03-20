@@ -21,7 +21,7 @@ export const onRequest: PagesFunction = async (context) => {
     body: context.request.method !== 'GET' && context.request.method !== 'HEAD'
       ? context.request.body
       : undefined,
-    redirect: 'manual',
+    redirect: 'follow',
   });
 
   // SPA fallback: if 404 and path has no file extension, serve index.html

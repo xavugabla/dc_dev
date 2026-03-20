@@ -19,7 +19,7 @@ export const onRequest: PagesFunction = async (context) => {
     body: context.request.method !== 'GET' && context.request.method !== 'HEAD'
       ? context.request.body
       : undefined,
-    redirect: 'manual',
+    redirect: 'follow',
   });
 
   const res = new Response(response.body, {
