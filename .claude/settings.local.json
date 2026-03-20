@@ -6,7 +6,16 @@
       "Bash(grep -r \"className\\\\|class=\" /Users/fxbc/code/dc_dev/src/pages/*.astro /Users/fxbc/code/dc_dev/src/layouts/*.astro 2>/dev/null | head -30)",
       "Bash(npm run:*)",
       "Bash(grep -o 'hub-card' /Users/fxbc/code/dc_dev/dist/index.html | wc -l && echo \"hub-card occurrences in home \\(expect ~12\\)\" && grep -c 'service-card' /Users/fxbc/code/dc_dev/dist/performance/index.html && echo \"service-card occurrences in performance \\(expect >0\\)\" && grep -c 'target=\"_blank\"' /Users/fxbc/code/dc_dev/dist/projects/index.html && echo \"target=_blank in projects \\(expect 4\\)\" && grep -c 'prose' /Users/fxbc/code/dc_dev/dist/docs/architecture/index.html && echo \"prose class in docs/architecture\")",
-      "Bash(find /Users/fxbc/code/dc_dev/src -type f \\\\\\( -name \"*.astro\" -o -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.css\" \\\\\\) 2>/dev/null | sort)"
+      "Bash(find /Users/fxbc/code/dc_dev/src -type f \\\\\\( -name \"*.astro\" -o -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.css\" \\\\\\) 2>/dev/null | sort)",
+      "Bash(gcloud config:*)",
+      "Bash(gcloud run:*)",
+      "Bash(gcloud auth:*)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://dc-hub-api-bz6s4nkt4q-uc.a.run.app/api/health 2>&1)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://dc-hub-api-216566158850.us-central1.run.app/api/health 2>&1)",
+      "Bash(gcloud artifacts:*)",
+      "Bash(docker build:*)",
+      "Bash(docker push:*)",
+      "Bash(gcloud logging:*)"
     ]
   }
 }

@@ -4,6 +4,7 @@ import { getIdentityToken } from '../../_lib/gcp-auth';
 
 interface Env {
   GCP_SERVICE_ACCOUNT_KEY: string;
+  DC_NOTION_SYNC_API_KEY: string;
 }
 
 const BACKEND = 'https://dc-notion-sync-api-bz6s4nkt4q-uc.a.run.app';
@@ -22,6 +23,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   if (context.env.GCP_SERVICE_ACCOUNT_KEY) {
     const idToken = await getIdentityToken(context.env.GCP_SERVICE_ACCOUNT_KEY, BACKEND);
     headers.set('Authorization', `Bearer ${idToken}`);
+  }
+
+  if (context.env.DC_NOTION_SYNC_API_KEY) {
+    headers.set('X-API-Key', context.env.DC_NOTION_SYNC_API_KEY);
   }
 
   const response = await fetch(backendUrl, {

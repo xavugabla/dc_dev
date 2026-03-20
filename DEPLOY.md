@@ -1,130 +1,131 @@
-# Deployment guide
+# Deployment Guide
 
-## Overview
+## Architecture
 
-- **Hub** (this repo) → Cloudflare Pages
-- **Worker** (gateway) → Cloudflare Workers (auth + routing)
-- **DaisyChain (dc-modeling)** → Separate Pages project (routed under `/modeling/`)
+| Component | Platform | Trigger |
+|-----------|----------|---------|
+| Hub frontend (Astro static) | Cloudflare Pages (`dc-hub`) | Auto on git push to `main` |
+| CF Pages Functions (proxies, middleware) | Cloudflare Pages (`dc-hub`) | Auto on git push to `main` |
+| Hub API (FastAPI) | Cloud Run (`dc-hub-api`) | Manual `gcloud run deploy` |
 
-## 1. Create KV namespace
+## 1. Frontend + Functions (Cloudflare Pages)
 
-```bash
-cd worker
-npm install
-npx wrangler kv namespace create AUTH
-```
-
-Copy the `id` from the output and update `worker/wrangler.toml`:
-
-```toml
-kv_namespaces = [
-  { binding = "AUTH", id = "YOUR_KV_ID_HERE" }
-]
-```
-
-## 2. Deploy the hub to Cloudflare Pages
-
-1. Push this repo to GitHub.
-2. In [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**.
-3. Select this repo.
-4. Configure:
-   - **Project name:** `dc-hub` (note the resulting `*.pages.dev` URL)
-   - **Build command:** `npm run build`
-   - **Build output directory:** `dist`
-   - **Root directory:** (leave default)
-5. Deploy. Note the URL, e.g. `https://dc-hub.pages.dev`.
-
-## 3. Deploy DaisyChain (dc-modeling, separate project)
-
-1. Create a new Pages project for the `one_click_dc` repo.
-2. Configure the project name as `dc-modeling` (or note the resulting `*.pages.dev` URL).
-3. Deploy. Note the URL, e.g. `https://dc-modeling.pages.dev`.
-
-## 4. Deploy the Worker
-
-1. Create the KV namespace (if not done):
+Push to `main` → CF Pages auto-builds:
 
 ```bash
-cd worker
-npx wrangler kv namespace create AUTH
+git push origin main
 ```
 
-Copy the `id` from the output into `worker/wrangler.toml` under `kv_namespaces`.
+Build command: `npm run build`
+Output directory: `dist`
 
-2. Set the admin secret (never commit this):
+CF Pages Functions in `functions/` are deployed alongside the static output. No separate step needed.
+
+**Verify:** Visit `https://dc-hub.pages.dev` — check nav, pages, and proxy functions.
+
+## 2. Hub API (Cloud Run)
+
+The backend lives in `backend/` and deploys as a container image.
 
 ```bash
-npx wrangler secret put ADMIN_SECRET   # Enter a strong random string; you'll use this to access /admin
+cd backend
+
+# Build for linux/amd64
+docker build --platform linux/amd64 \
+  -t us-central1-docker.pkg.dev/dc-solar-leads/cloud-run-source-deploy/dc-hub-api:latest .
+
+# Push to Artifact Registry
+docker push us-central1-docker.pkg.dev/dc-solar-leads/cloud-run-source-deploy/dc-hub-api:latest
+
+# Deploy from image
+gcloud run deploy dc-hub-api \
+  --image us-central1-docker.pkg.dev/dc-solar-leads/cloud-run-source-deploy/dc-hub-api:latest \
+  --region us-central1 \
+  --project dc-solar-leads
 ```
 
-3. Update `worker/wrangler.toml`:
+First run: `gcloud auth configure-docker us-central1-docker.pkg.dev` to set up Docker credentials.
 
-```toml
-[vars]
-HUB_ORIGIN = "https://dc-hub.pages.dev"          # Your hub Pages URL
-MODELING_ORIGIN = "https://dc-modeling.pages.dev"     # DaisyChain frontend
-```
+**Service URL:** `https://dc-hub-api-bz6s4nkt4q-uc.a.run.app`
 
-4. Deploy:
+### When to redeploy Cloud Run
 
-```bash
-npx wrangler deploy
-```
+Redeploy after changes to any file under `backend/`:
+- `hub_api/routes/` — API route logic (health, auth, admin, deployments, partner, pipeline)
+- `hub_api/config.py` — settings / env var mapping
+- `hub_api/main.py` — FastAPI app setup
+- `requirements.txt` — Python dependencies
+- `Dockerfile` — container config
 
-5. Add the Worker route:
-   - **Workers & Pages** → **Workers** → select `dc-hub-gateway`
-   - **Settings** → **Triggers** → **Add route**
-   - **Route:** `dc-dev.pages.dev/*` (or your custom domain)
-   - **Zone:** Select the zone that owns the domain
+Frontend-only changes (Astro pages, CSS, CF Functions) do **not** require a Cloud Run redeploy.
 
-   For `*.pages.dev`, the route is added via the Pages project:
-   - Go to the **dc-dev** Pages project (the one currently at dc-dev.pages.dev)
-   - **Settings** → **Functions** → **Worker routes** (or similar)
-   - Or in **Workers** → **Overview** → **Add route** → `dc-dev.pages.dev/*`
+### Environment variables (Cloud Run)
 
-   Note: To use `dc-dev.pages.dev` with the Worker, you need the Worker to run on that domain. The `dc-dev` Pages project owns that domain. You may need to:
-   - Use a **custom domain** (e.g. `dc-dev.example.com`) on your zone, and add the Worker route there, OR
-   - Use Cloudflare's **Workers for Platforms** / **Custom Domains** to attach the Worker to the Pages project's domain.
+Set via GCP Console → Cloud Run → dc-hub-api → Edit & Deploy → Variables, or via Secret Manager references:
 
-   For `*.pages.dev` subdomains, the typical approach is to add a **Custom Domain** to your Pages project (e.g. `hub.yourdomain.com`), then add the Worker route on that domain. If you only have `dc-dev.pages.dev`, check [Cloudflare docs](https://developers.cloudflare.com/workers/configuration/routing/routes/) for attaching Workers to Pages.
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | Neon PostgreSQL connection string |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID (Secret Manager) |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret (Secret Manager) |
+| `GOOGLE_REDIRECT_URI` | `https://dc-hub.pages.dev/api/auth/callback` |
+| `ADMIN_SECRET` | Secret key for `/admin` page API access |
+| `CORS_ORIGINS` | `https://dc-hub.pages.dev` |
+| `DC_ASYNC_URL` | `https://dc-notion-sync-api-bz6s4nkt4q-uc.a.run.app` |
+| `PARTNER_API_URL` | `https://dc-portal-api-bz6s4nkt4q-uc.a.run.app` |
+| `CLOUDFLARE_API_TOKEN` | CF API token (Pages Read + Workers Scripts Read) |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID (32-char hex) |
 
-## 5. Point dc-dev.pages.dev at the Worker
+### Environment variables (CF Pages)
 
-The `dc-dev` Pages project currently serves One Click DC. To switch:
+Set in CF Dashboard → dc-hub → Settings → Environment Variables:
 
-1. **Option A – Same domain, Worker in front**
-   - Add Worker route: `dc-dev.pages.dev/*` → `dc-dev-gateway`
-   - The Worker will fetch from `dc-hub` and `dc-modeling` based on path.
+| Variable | Purpose |
+|----------|---------|
+| `GCP_SERVICE_ACCOUNT_KEY` | Service account JSON for OIDC token generation in CF Functions |
 
-2. **Option B – New hub project, then Worker**
-   - Create `dc-dev-hub` Pages project (builds this repo).
-   - Create `dc-modeling` Pages project (builds one_click_dc repo).
-   - Change the `dc-dev` project's build to a no-op or delete it.
-   - Add Worker route on `dc-dev.pages.dev` pointing to your Worker.
-   - Worker fetches from `dc-hub.pages.dev` and `dc-modeling.pages.dev`.
+## 3. Child projects
 
-## 6. Hub API (Cloud Run) — deployment status
+Each child SPA deploys independently to its own CF Pages project. The hub proxies their frontends and APIs.
 
-The Hub API exposes `/api/status/deployments` for the performance page. To fetch last deploy times from Cloud Run and Cloudflare, set these env vars on the Hub API (Cloud Run) service:
+| Project | CF Pages | Cloud Run | Hub routes |
+|---------|----------|-----------|------------|
+| Engine | `dc-engine` | `dc-engine-api` | `/engine/*`, `/api/engine/*` |
+| Notion Sync | `dc-notion-sync` | `dc-notion-sync-api` | `/notion-sync/*`, `/api/notion-sync/*` |
+| Portal | `dc-portal` | `dc-portal-api` | `/portal/*`, `/api/portal/*` |
+| BD Tools | `dc-bd-tools` | — | `/bd-tools/*` |
 
-| Env var | Purpose |
-|---------|---------|
-| `CLOUDFLARE_API_TOKEN` | API token with Pages Read + Workers Scripts Read. Used for Pages/Worker deployment timestamps. |
-| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID (32-char hex). Find in Dashboard → Workers & Pages → Overview. |
+Child CF Pages env vars (for Vite sub-apps):
+- `VITE_BASE_PATH` — e.g. `/engine/`
+- `VITE_API_BASE` — e.g. `/api/engine/api`
 
-GCP Cloud Run revision times use Application Default Credentials; no extra env vars needed when the Hub runs on Cloud Run.
+See `ARCHITECTURE_BASE_PATH.md` for full spec.
 
-## 7. Admin access
+## 4. Onboarding a new project
 
-- **URL:** `https://dc-dev.pages.dev/admin?key=YOUR_ADMIN_SECRET`
-- Approve pending requests and copy the magic link to send to users.
-- Keep `ADMIN_SECRET` private.
+1. Create CF Pages project `dc-{name}`, set `VITE_BASE_PATH=/{name}/` and `VITE_API_BASE`
+2. Add frontend proxy: `functions/{name}/[[path]].ts` (import `injectHomeButton`)
+3. Add API proxy: `functions/api/{name}/[[path]].ts` (import `getIdentityToken`)
+4. Add entry to `src/config/projects.config.ts`
+5. Add entry to `backend/hub_api/routes/deployments.py` `DEPLOY_CONFIG`
+6. Push to deploy CF Pages, then `gcloud run deploy` for the backend
 
-## Auth flow
+## 5. Verification checklist
 
-1. User visits site → redirected to `/login` if not authenticated.
-2. User submits "Request access" (email + optional message).
-3. Admin visits `/admin?key=SECRET`, sees pending requests.
-4. Admin clicks "Approve" → magic link is generated.
-5. Admin sends the link to the user (Slack, email, etc.).
-6. User clicks the link → session cookie is set → access granted.
+After deploying:
+- [ ] `/` — clean 4-card hub landing
+- [ ] `/performance/` — health dashboard loads, checks run
+- [ ] `/projects/` — cards render, "Open" opens in new tab
+- [ ] `/docs/` — index + subpages render markdown
+- [ ] `/engine/` — proxied SPA loads, floating home button visible
+- [ ] `/api/health` — returns `{"status": "ok", "database": true}`
+- [ ] `/api/status/deployments` — returns deploy times for all projects including bd-tools
+- [ ] Header logo shows horizontal lockup (not icon + typed text)
+- [ ] Nav reads: Home | Docs | Performance | Projects | Admin
+
+## IAM
+
+- **Service account:** `dc-hub-invoker@dc-solar-leads.iam.gserviceaccount.com`
+- **Compute SA:** `216566158850-compute@developer.gserviceaccount.com`
+- Both have `roles/run.invoker` on all Cloud Run services
+- `GCP_SERVICE_ACCOUNT_KEY` in CF Pages contains the `dc-hub-invoker` key JSON
