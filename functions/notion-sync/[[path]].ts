@@ -2,9 +2,14 @@
 // Strips /notion-sync prefix and forwards remainder to origin
 import { injectHomeButton } from '../_lib/home-button';
 
-const ORIGIN = 'https://dc-notion-sync.pages.dev';
+interface Env {
+  NOTION_SYNC_FRONTEND_ORIGIN: string;
+}
 
-export const onRequest: PagesFunction = async (context) => {
+const DEFAULT_ORIGIN = 'https://dc-notion-sync.pages.dev';
+
+export const onRequest: PagesFunction<Env> = async (context) => {
+  const ORIGIN = context.env.NOTION_SYNC_FRONTEND_ORIGIN || DEFAULT_ORIGIN;
   const url = new URL(context.request.url);
   const path = url.pathname.replace(/^\/notion-sync/, '') || '/';
   const targetUrl = `${ORIGIN}${path}${url.search}`;

@@ -2,11 +2,16 @@
 // Strips /portal prefix. Includes SPA fallback for client-side routing.
 import { injectHomeButton } from '../_lib/home-button';
 
-const ORIGIN = 'https://dc-portal.pages.dev';
+interface Env {
+  PORTAL_FRONTEND_ORIGIN: string;
+}
+
+const DEFAULT_ORIGIN = 'https://dc-portal.pages.dev';
 
 const HAS_EXTENSION = /\.[a-zA-Z0-9]+$/;
 
-export const onRequest: PagesFunction = async (context) => {
+export const onRequest: PagesFunction<Env> = async (context) => {
+  const ORIGIN = context.env.PORTAL_FRONTEND_ORIGIN || DEFAULT_ORIGIN;
   const url = new URL(context.request.url);
   const path = url.pathname.replace(/^\/portal/, '') || '/';
   const targetUrl = `${ORIGIN}${path}${url.search}`;

@@ -4,11 +4,13 @@ import { getIdentityToken } from '../_lib/gcp-auth';
 
 interface Env {
   GCP_SERVICE_ACCOUNT_KEY: string;
+  HUB_API_BACKEND: string;
 }
 
-const BACKEND = 'https://dc-hub-api-bz6s4nkt4q-uc.a.run.app';
+const DEFAULT_BACKEND = 'https://dc-hub-api-bz6s4nkt4q-uc.a.run.app';
 
 export const onRequest: PagesFunction<Env> = async (context) => {
+  const BACKEND = context.env.HUB_API_BACKEND || DEFAULT_BACKEND;
   const url = new URL(context.request.url);
   const backendUrl = `${BACKEND}${url.pathname}${url.search}`;
 

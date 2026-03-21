@@ -18,6 +18,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 SESSION_COOKIE = "dc_session"
 STATE_COOKIE = "oauth_state"
+DEV_EMAIL = "dev@daisychain.local"
 
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -28,11 +29,62 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _create_dev_session(db: Session) -> str:
+    """Create (or ensure) the dev user + session. Returns the session id as string."""
+    user = db.query(AuthUser).filter(AuthUser.email == DEV_EMAIL).first()
+    if not user:
+        user = AuthUser(email=DEV_EMAIL, name="Dev User", status="approved")
+        db.add(user)
+        db.flush()
+
+    session_id = uuid_mod.uuid4()
+    db.add(AuthSession(id=session_id, email=DEV_EMAIL, expires_at=AuthSession.new_expiry()))
+    db.flush()
+    return str(session_id)
+
+
+# ---------- dev-login (local dev only) ----------
+
+
+@router.post("/dev-login")
+async def dev_login(db: Session = Depends(get_db)):
+    if not settings.dev_mode:
+        return JSONResponse({"error": "Not found"}, status_code=404)
+
+    session_id = _create_dev_session(db)
+
+    response = JSONResponse({"ok": True, "email": DEV_EMAIL})
+    response.set_cookie(
+        SESSION_COOKIE,
+        session_id,
+        max_age=settings.session_ttl,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        path="/",
+    )
+    return response
+
+
 # ---------- login (redirect to Google) ----------
 
 
 @router.get("/login")
-async def login():
+async def login(db: Session = Depends(get_db)):
+    if settings.dev_mode:
+        session_id = _create_dev_session(db)
+        response = RedirectResponse("/", status_code=302)
+        response.set_cookie(
+            SESSION_COOKIE,
+            session_id,
+            max_age=settings.session_ttl,
+            httponly=True,
+            secure=False,
+            samesite="lax",
+            path="/",
+        )
+        return response
+
     if not settings.google_client_id:
         return JSONResponse({"error": "Google OAuth not configured"}, status_code=500)
 

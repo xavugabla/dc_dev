@@ -5,11 +5,13 @@ import { getIdentityToken } from '../../_lib/gcp-auth';
 
 interface Env {
   GCP_SERVICE_ACCOUNT_KEY: string;
+  ENGINE_API_BACKEND: string;
 }
 
-const BACKEND = 'https://dc-engine-api-bz6s4nkt4q-uc.a.run.app';
+const DEFAULT_BACKEND = 'https://dc-engine-api-bz6s4nkt4q-uc.a.run.app';
 
 export const onRequest: PagesFunction<Env> = async (context) => {
+  const BACKEND = context.env.ENGINE_API_BACKEND || DEFAULT_BACKEND;
   const url = new URL(context.request.url);
   // /api/engine/health/detailed → /health/detailed, /api/engine/api/graphs → /api/graphs
   const suffix = url.pathname.replace(/^\/api\/engine/, '') || '/';

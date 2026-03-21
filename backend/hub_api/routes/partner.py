@@ -1,22 +1,15 @@
 """Portal proxy: forwards /api/portal/* to dc-portal-api Cloud Run.
 Checks session auth and injects X-DC-User-Email / X-DC-Admin headers."""
 
-import uuid as uuid_mod
-from datetime import datetime, timezone
-
 import httpx
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, Response
-from sqlalchemy.orm import Session
 
+from hub_api.auth_dep import require_auth
 from hub_api.config import settings
-from hub_api.db.connection import get_db
-from hub_api.db.models import AuthSession
 from hub_api.gcp_auth import get_id_token
 
 router = APIRouter(prefix="/api/portal", tags=["portal"])
-
-SESSION_COOKIE = "dc_session"
 
 # Admin emails that get X-DC-Admin: true when proxied to partner services
 DC_ADMIN_EMAILS = {
@@ -33,28 +26,8 @@ async def _get_client() -> httpx.AsyncClient:
     return _client
 
 
-def _check_session(request: Request, db: Session) -> str | None:
-    """Return email if session is valid, else None."""
-    session_id = request.cookies.get(SESSION_COOKIE)
-    if not session_id:
-        return None
-    try:
-        sid = uuid_mod.UUID(session_id)
-    except ValueError:
-        return None
-    session = db.query(AuthSession).filter(AuthSession.id == sid).first()
-    if not session or datetime.now(timezone.utc) > session.expires_at:
-        return None
-    return session.email
-
-
 @router.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
-async def proxy_partner(path: str, request: Request, db: Session = Depends(get_db)):
-    # Auth check
-    email = _check_session(request, db)
-    if not email:
-        return JSONResponse({"error": "Not authenticated"}, status_code=401)
-
+async def proxy_partner(path: str, request: Request, email: str = Depends(require_auth)):
     # Rewrite /api/portal/* → /api/*
     target = f"{settings.partner_api_url}/api/{path}"
     if request.url.query:
@@ -69,10 +42,11 @@ async def proxy_partner(path: str, request: Request, db: Session = Depends(get_d
     headers["x-dc-user-email"] = email
     headers["x-dc-admin"] = "true" if email in DC_ADMIN_EMAILS else "false"
 
-    # Add GCP OIDC token for Cloud Run service-to-service auth
-    id_token = get_id_token(settings.partner_api_url)
-    if id_token:
-        headers["authorization"] = f"Bearer {id_token}"
+    # Add GCP OIDC token for Cloud Run service-to-service auth (skip in dev)
+    if not settings.dev_mode:
+        id_token = get_id_token(settings.partner_api_url)
+        if id_token:
+            headers["authorization"] = f"Bearer {id_token}"
 
     body = await request.body() if request.method not in ("GET", "HEAD") else None
 

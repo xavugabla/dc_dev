@@ -2,11 +2,16 @@
 // Strips /engine prefix. Includes SPA fallback: if upstream 404 + no file extension, serve index.html
 import { injectHomeButton } from '../_lib/home-button';
 
-const ORIGIN = 'https://dc-engine.pages.dev';
+interface Env {
+  ENGINE_FRONTEND_ORIGIN: string;
+}
+
+const DEFAULT_ORIGIN = 'https://dc-engine.pages.dev';
 
 const HAS_EXTENSION = /\.[a-zA-Z0-9]+$/;
 
-export const onRequest: PagesFunction = async (context) => {
+export const onRequest: PagesFunction<Env> = async (context) => {
+  const ORIGIN = context.env.ENGINE_FRONTEND_ORIGIN || DEFAULT_ORIGIN;
   const url = new URL(context.request.url);
   const path = url.pathname.replace(/^\/engine/, '') || '/';
   const targetUrl = `${ORIGIN}${path}${url.search}`;

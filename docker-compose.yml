@@ -1,0 +1,43 @@
+services:
+  hub-db:
+    image: postgres:16-alpine
+    container_name: dc_hub_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-hub}
+    ports:
+      - "${POSTGRES_PORT:-5434}:5432"
+    volumes:
+      - hub_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  hub-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dc_hub_api
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@hub-db:5432/hub
+      DEV_MODE: "true"
+      PARTNER_API_URL: "http://host.docker.internal:8080"
+      CORS_ORIGINS: "http://localhost:4321"
+      DEBUG: ${DEBUG:-false}
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./backend/hub_api:/app/hub_api
+    depends_on:
+      hub-db:
+        condition: service_healthy
+    command: uvicorn hub_api.main:app --host 0.0.0.0 --port 8003 --reload
+    restart: unless-stopped
+
+volumes:
+  hub_db_data:
+    driver: local

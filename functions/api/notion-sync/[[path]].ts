@@ -5,11 +5,13 @@ import { getIdentityToken } from '../../_lib/gcp-auth';
 interface Env {
   GCP_SERVICE_ACCOUNT_KEY: string;
   DC_NOTION_SYNC_API_KEY: string;
+  NOTION_SYNC_API_BACKEND: string;
 }
 
-const BACKEND = 'https://dc-notion-sync-api-bz6s4nkt4q-uc.a.run.app';
+const DEFAULT_BACKEND = 'https://dc-notion-sync-api-bz6s4nkt4q-uc.a.run.app';
 
 export const onRequest: PagesFunction<Env> = async (context) => {
+  const BACKEND = context.env.NOTION_SYNC_API_BACKEND || DEFAULT_BACKEND;
   const url = new URL(context.request.url);
   // /api/notion-sync/health → /health, /api/notion-sync/scripts/foo → /scripts/foo
   const path = url.pathname.replace(/^\/api\/notion-sync/, '') || '/';

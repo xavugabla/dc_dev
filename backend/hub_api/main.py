@@ -11,27 +11,32 @@ from sqlalchemy import text
 
 from hub_api.db.connection import Base, engine
 from hub_api.db.models import AuthUser, AuthSession, AuthToken, AuthAccessRequest  # noqa: F401
-from hub_api.routes import auth, admin, pipeline, partner, health, deployments
+from hub_api.routes import auth, admin, partner, health, deployments
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create auth tables only (auth_ prefix). Never touches one_click_dc tables.
-    auth_tables = [
-        t for t in Base.metadata.tables.values()
-        if t.name.startswith("auth_")
-    ]
-    Base.metadata.create_all(bind=engine, tables=auth_tables)
+    # Create auth tables on startup — wrapped in try/except so the app starts
+    # even if the database is temporarily cold/unreachable (Neon serverless).
+    try:
+        auth_tables = [
+            t for t in Base.metadata.tables.values()
+            if t.name.startswith("auth_")
+        ]
+        Base.metadata.create_all(bind=engine, tables=auth_tables)
 
-    # Add new columns if they don't exist (safe to run repeatedly)
-    with engine.begin() as conn:
-        for col, col_type in [("name", "VARCHAR(255)"), ("picture", "TEXT")]:
-            try:
-                conn.execute(text(
-                    f"ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS {col} {col_type}"
-                ))
-            except Exception:
-                pass  # Column already exists
+        # Add new columns if they don't exist (safe to run repeatedly)
+        with engine.begin() as conn:
+            for col, col_type in [("name", "VARCHAR(255)"), ("picture", "TEXT")]:
+                try:
+                    conn.execute(text(
+                        f"ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS {col} {col_type}"
+                    ))
+                except Exception:
+                    pass  # Column already exists
+    except Exception as e:
+        import logging
+        logging.getLogger("hub_api").warning(f"DB init deferred (will retry on first request): {e}")
     yield
 
 
@@ -62,6 +67,5 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(admin.router)
-app.include_router(pipeline.router)
 app.include_router(partner.router)
 app.include_router(deployments.router)
